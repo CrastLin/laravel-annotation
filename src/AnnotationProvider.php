@@ -100,9 +100,14 @@ class AnnotationProvider extends ServiceProvider
                 }
             }
             // register route file
-            foreach ($config['modules'] as $module):
-                Route::namespace($namespace)->group("{$routeBasePath}/{$module}/route.php");
-            endforeach;
+            if (!empty($config['modules'])) {
+                foreach ($config['modules'] as $module) {
+                    $module = ucfirst($module);
+                    $annotationRoute = "{$routeBasePath}/{$module}/route.php";
+                    if (is_file($annotationRoute))
+                        Route::namespace($namespace)->group($annotationRoute);
+                }
+            }
         });
     }
 
