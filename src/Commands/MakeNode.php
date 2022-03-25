@@ -9,7 +9,7 @@ use Crastlin\LaravelAnnotation\Annotation\Node;
 
 class MakeNode extends Command
 {
-    protected $signature = 'make:node {module}';
+    protected $signature = 'make:node {module?}';
 
     protected $description = '根据控制器注解创建权限节点';
 

@@ -10,7 +10,7 @@ use Crastlin\LaravelAnnotation\Annotation\Route;
 
 class MakeRoute extends Command
 {
-    protected $signature = 'make:route {module :生成所有模块路由，或输入指定模块目录名，不区分大小写}';
+    protected $signature = 'make:route {module?}';
 
     protected $description = '根据控制器注解创建路由表';
 
