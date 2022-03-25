@@ -295,8 +295,7 @@ class Route extends Node
             foreach ($modulePathMapping as $module => $scanPath):
                 $namespace = $namespaceBase . '\\' . $module;
                 $basePath = "{$routeBasePath}/{$module}";
-                $defaultGroupParams = ['prefix' => strtolower($module), 'namespace' => $module, 'middleware' => $module == 'Admin' ? 'admin.check' : ''];
-                self::runCreateWithAnnotation($scanPath, $namespace, $basePath, true, $defaultGroupParams);
+                self::runCreateWithAnnotation($scanPath, $namespace, $basePath, true);
                 // 自动更新节点
                 if ($isAsyncBuildNode)
                     Node::runCreateWithAnnotation($scanPath, $namespace);

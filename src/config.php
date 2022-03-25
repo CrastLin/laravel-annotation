@@ -11,8 +11,6 @@ return [
     'annotation_path' => 'data/',
     // 是否开启自动生成（建议debug模式下开启）请求时将自动创建新增加的注解到路由表
     'auto_create_case' => env('APP_DEBUG'),
-    // 默认路由中间件
-    'default_middleware' => '',
     // 请求时自动创建节点
     'auto_create_node' => env('ANNOTATION_AUTO_CRATE_NODE', false),
 ];
