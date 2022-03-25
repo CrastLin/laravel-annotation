@@ -25,10 +25,12 @@
   "extra": {
     "laravel": {
       "providers": [
-        "Crastlin\\LaravelAnnotation\\ServiceProvider"
+        "Crastlin\\LaravelAnnotation\\AnnotationProvider"
       ],
       "aliases": {
-        "LaravelAnnotationRoute": "Crastlin\\LaravelAnnotation\\Annotation\\Route"
+        "LaravelAnnotationRoute": "Crastlin\\LaravelAnnotation\\Annotation\\Route",
+        "LaravelAnnotationNode": "Crastlin\\LaravelAnnotation\\Annotation\\Node",
+        "LaravelAnnotationNodeInterface": "Crastlin\\LaravelAnnotation\\Annotation\\NodeInterface"
       }
     }
   }
