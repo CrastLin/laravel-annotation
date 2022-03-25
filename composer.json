@@ -20,7 +20,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Crastlin\\LaravelAnnotation\\AnnotationProvider"
+                "Crastlin\\LaravelAnnotation\\ServiceProvider"
             ]
         }
     }
