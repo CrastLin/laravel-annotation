@@ -29,7 +29,7 @@
         "Crastlin\\LaravelAnnotation\\ServiceProvider"
       ],
       "aliases": {
-        "LaravelAnnotationRoute": "Crastlin\\LaravelAnnotation\\Route"
+        "LaravelAnnotationRoute": "Crastlin\\LaravelAnnotation\\Annotation\\Route"
       }
     }
   }
