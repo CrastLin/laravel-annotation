@@ -41,7 +41,7 @@ class MakeRoute extends Command
                 $namespaceBase = !empty($config['controller_namespace']) ? rtrim($config['controller_namespace'], '\\') : 'App\\Http\\Controllers';
                 $namespace = $namespaceBase . '\\' . $module;
                 try {
-                    Route::runCreateWithAnnotation($scanPath, $namespace, $routeBasePath, $config['auto_create_node'] ?? false);
+                    Route::runCreateWithAnnotation($scanPath, $namespace, $routeBasePath, $config['auto_create_node'] ?? false, $config['default_middleware'] ?? []);
                     $this->info("创建 <模块：{$module}> 路由成功");
                 } catch (\Throwable $exception) {
                     $this->warn("创建 <模块：{$module}> 失败" . $exception->getMessage());

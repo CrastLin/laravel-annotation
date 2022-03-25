@@ -89,7 +89,7 @@ class ServiceProvider extends LaravelServiceProvider
                             if ($distributedLock->acquire()) {
                                 $moduleBasePath = !empty($config['controller_base']) ? rtrim($config['controller_base'], '/') : 'app/Http/Controllers';
                                 $moduleBasePath = base_path($moduleBasePath);
-                                \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping(ltrim($path, "/{$matches[1]}"), $config['modules'], $moduleBasePath, $namespace, $routeBasePath, !empty($config['auto_create_node']));
+                                \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping(ltrim($path, "/{$matches[1]}"), $config['modules'], $moduleBasePath, $namespace, $routeBasePath, !empty($config['auto_create_node']), $config['default_middleware'] ?? []);
                                 $distributedLock->release();
                             }
                         } catch (Throwable $exception) {

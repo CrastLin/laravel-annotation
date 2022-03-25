@@ -51,18 +51,18 @@ class Route extends Node
     ];
 
     /**
-     * @var array $group
+     * @var array $rootMiddleware
      */
-    protected $group;
+    protected $rootMiddleware;
 
     /**
-     * set middleware
-     * @param array $group
+     * set root middleware
+     * @param array $rootMiddleware
      * @return $this
      */
-    function setGroup(array $group): Route
+    function setRootMiddleware(array $rootMiddleware): Route
     {
-        $this->group = $group;
+        $this->rootMiddleware = $rootMiddleware;
         return $this;
     }
 
@@ -82,7 +82,7 @@ class Route extends Node
     static function runCreateWithAnnotation(string $scanPath, string $namespace, ...$params): void
     {
         self::$groupParamList = null;
-        list($basePath, $repeatCreate, $defaultGroup) = [
+        list($basePath, $repeatCreate, $rootMiddleware) = [
             $params[0] ?? 'data',
             $params[1] ?? false,
             $params[2] ?? [],
@@ -91,14 +91,14 @@ class Route extends Node
         if (!is_file($routePath) || $repeatCreate) {
             $aliasPath = "{$basePath}/alias.php";
             $routeAnnotationList = [];
-            self::scanAnnotation($scanPath, $namespace, function ($class) use (&$routeAnnotationList, $defaultGroup) {
+            self::scanAnnotation($scanPath, $namespace, function ($class) use (&$routeAnnotationList, $rootMiddleware) {
                 // create route annotate object
                 $route = new Route($class);
                 // create group route annotate object
                 $group = new Group($class);
                 // 获取路由组类注解
                 $group->matchClassAnnotate();
-                $route->setGroup($defaultGroup)->matchAllMethodAnnotation(function (ReflectionMethod $method) use ($route, $group, &$routeAnnotationList) {
+                $route->setRootMiddleware($rootMiddleware)->matchAllMethodAnnotation(function (ReflectionMethod $method) use ($route, $group, &$routeAnnotationList) {
 
                     $routeAnnotation = $route->parseRouteAnnotation($method, $group);
                     if (!empty($routeAnnotation))
@@ -219,11 +219,11 @@ class Route extends Node
         $groupClassAnnotate = $group->getClassAnnotateResult();
         $groupClassAnnotate = $groupClassAnnotate ?: [];
         // merge default group annotate
-        $groupClassAnnotate = !empty($this->group) && !empty($groupClassAnnotate) ? array_merge([$this->group], $groupClassAnnotate) : (!empty($groupClassAnnotate) ? $groupClassAnnotate : [$this->group]);
+        $groupAnnotateList = !empty($this->rootMiddleware) && !empty($groupClassAnnotate) ? array_merge([$this->rootMiddleware], [$groupClassAnnotate]) : (!empty($groupClassAnnotate) ? [$groupClassAnnotate] : [$this->rootMiddleware]);
         // get group method annotates result
         $groupMethodAnnotate = $group->matchMethodAnnotate($method);
         $groupMethodAnnotate = $groupMethodAnnotate ?: [];
-        $groupAnnotateList = !empty($groupClassAnnotate) && !empty($groupMethodAnnotate) ? array_merge($groupClassAnnotate, $groupMethodAnnotate) : (!empty($groupMethodAnnotate) ? $groupMethodAnnotate : $groupClassAnnotate);
+        $groupAnnotateList = !empty($groupAnnotateList) && !empty($groupMethodAnnotate) ? array_merge($groupAnnotateList, [$groupMethodAnnotate]) : (!empty($groupMethodAnnotate) ? [$groupMethodAnnotate] : $groupAnnotateList);
         $annotation['groupTree'] = null;
         if (!empty($groupAnnotateList)) {
             $unique = [];
@@ -267,10 +267,11 @@ class Route extends Node
      * @param string $namespaceBase
      * @param string $routeBasePath
      * @param bool $isAsyncBuildNode
+     * @param array $defaultMiddleware
      * @param callable $callback
      * @throws Throwable
      */
-    static function autoBuildRouteMapping(string $routePath, array $moduleList, string $moduleBasePath, string $namespaceBase, string $routeBasePath, bool $isAsyncBuildNode = false, ?callable $callback = null)
+    static function autoBuildRouteMapping(string $routePath, array $moduleList, string $moduleBasePath, string $namespaceBase, string $routeBasePath, ?array $defaultMiddleware = null, bool $isAsyncBuildNode = false, ?callable $callback = null)
     {
         $modulePathMapping = [];
         $toCreateRoute = true;
@@ -295,7 +296,7 @@ class Route extends Node
             foreach ($modulePathMapping as $module => $scanPath):
                 $namespace = $namespaceBase . '\\' . $module;
                 $basePath = "{$routeBasePath}/{$module}";
-                self::runCreateWithAnnotation($scanPath, $namespace, $basePath, true);
+                self::runCreateWithAnnotation($scanPath, $namespace, $basePath, true, $defaultMiddleware);
                 // 自动更新节点
                 if ($isAsyncBuildNode)
                     Node::runCreateWithAnnotation($scanPath, $namespace);
