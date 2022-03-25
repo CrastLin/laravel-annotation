@@ -76,7 +76,7 @@ class ServiceProvider extends LaravelServiceProvider
             // support new action annotation to create
             // support edit annotation for update
             $config = config('annotation');
-            $namespace = !empty($config['controller_namespace']) ? rtrim($config['controller_base'], '\\') : 'App\\Http\\Controllers';
+            $namespace = !empty($config['controller_namespace']) ? rtrim($config['controller_namespace'], '\\') : 'App\\Http\\Controllers';
             $filePath = !empty($config['annotation_path']) ? rtrim($config['annotation_path'], '/') : 'data';
             $routeBasePath = base_path($filePath . '/routes');
             if (!empty($config['auto_create_case'])) {
