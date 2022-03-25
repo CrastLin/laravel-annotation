@@ -38,7 +38,7 @@ class MakeRoute extends Command
             $scanBase = !empty($config['controller_base']) ? rtrim($config['controller_base'], '/') : 'app/Http/Controllers';
             $scanPath = base_path($scanBase . '/' . $module);
             if (is_dir($scanPath)) {
-                $namespaceBase = !empty($config['controller_namespace']) ? rtrim($config['controller_base'], '\\') : 'App\\Http\\Controllers';
+                $namespaceBase = !empty($config['controller_namespace']) ? rtrim($config['controller_namespace'], '\\') : 'App\\Http\\Controllers';
                 $namespace = $namespaceBase . '\\' . $module;
                 try {
                     Route::runCreateWithAnnotation($scanPath, $namespace, $routeBasePath, $config['auto_create_node'] ?? false, $config['default_middleware'] ?? '');
