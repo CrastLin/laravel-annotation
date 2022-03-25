@@ -1,0 +1,27 @@
+{
+    "name": "crastlin/laravel-annotation",
+    "description": "RouteMapping RouteGroup Node",
+    "keywords": ["annotation", "laravel", "route", "node"],
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Crastlin\\LaravelAnnotation\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "CrastLin",
+            "email": "crastlin@163.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.0.0"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Crastlin\\LaravelAnnotation\\AnnotationProvider"
+            ]
+        }
+    }
+}
