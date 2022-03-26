@@ -219,7 +219,9 @@ class Route extends Node
         $groupClassAnnotate = $group->getClassAnnotateResult();
         $groupClassAnnotate = $groupClassAnnotate ?: [];
         // merge default group annotate
-        $groupAnnotateList = !empty($this->rootGroup) && !empty($groupClassAnnotate) ? array_merge([$this->rootGroup], [$groupClassAnnotate]) : (!empty($groupClassAnnotate) ? [$groupClassAnnotate] : [$this->rootGroup]);
+        $groupKey = ucfirst($this->module);
+        $routeGroup = !empty($this->rootGroup) && array_key_exists($groupKey, $this->rootGroup) ? $this->rootGroup[$groupKey] : [];
+        $groupAnnotateList = !empty($routeGroup) && !empty($groupClassAnnotate) ? array_merge([$routeGroup], [$groupClassAnnotate]) : (!empty($groupClassAnnotate) ? [$groupClassAnnotate] : [$routeGroup]);
         // get group method annotates result
         $groupMethodAnnotate = $group->matchMethodAnnotate($method);
         $groupMethodAnnotate = $groupMethodAnnotate ?: [];
@@ -266,12 +268,12 @@ class Route extends Node
      * @param string $moduleBasePath
      * @param string $namespaceBase
      * @param string $routeBasePath
+     * @param array|null $rootGroup
      * @param bool $isAsyncBuildNode
-     * @param array $defaultMiddleware
-     * @param callable $callback
+     * @param callable|null $callback
      * @throws Throwable
      */
-    static function autoBuildRouteMapping(string $routePath, array $moduleList, string $moduleBasePath, string $namespaceBase, string $routeBasePath, ?array $defaultMiddleware = null, bool $isAsyncBuildNode = false, ?callable $callback = null)
+    static function autoBuildRouteMapping(string $routePath, array $moduleList, string $moduleBasePath, string $namespaceBase, string $routeBasePath, ?array $rootGroup = null, bool $isAsyncBuildNode = false, ?callable $callback = null)
     {
         $modulePathMapping = [];
         $toCreateRoute = true;
@@ -296,7 +298,7 @@ class Route extends Node
             foreach ($modulePathMapping as $module => $scanPath):
                 $namespace = $namespaceBase . '\\' . $module;
                 $basePath = "{$routeBasePath}/{$module}";
-                self::runCreateWithAnnotation($scanPath, $namespace, $basePath, true, $defaultMiddleware);
+                self::runCreateWithAnnotation($scanPath, $namespace, $basePath, true, $rootGroup);
                 // 自动更新节点
                 if ($isAsyncBuildNode)
                     Node::runCreateWithAnnotation($scanPath, $namespace);

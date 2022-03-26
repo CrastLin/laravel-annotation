@@ -123,7 +123,22 @@ php artisan annotation:config
   ##### auto_create_case
 * 是否开启自动生成（建议debug模式下开启）请求时将自动创建新增加的注解到路由表，默认为：env('APP_DEBUG')
   ##### root_group
-* 根路由分组，默认不分组，需要根分组，请生成配置文件定义分组参数数组
+* 根路由分组，默认不分组，定义格式为
+````php
+return [
+  'modules' => ['User', 'Admin'],
+  'root_group' => [
+     'User' => [
+        ['prefix' => 'user', 'namespace' => 'User', 'middleware' => 'user.check', 'as' => 'User::'],
+        // 更多分组
+      ],
+     'Admin' => [
+        ['prefix' => 'admin', 'namespace' => 'Admin', 'middleware' => 'admin.check', 'as' => 'Admin::'],
+        // 更多分组
+     ],
+   ],
+];
+````
   ##### auto_create_node
 * 请求时自动创建节点，默认关闭，可以配置环境 ANNOTATION_AUTO_CRATE_NODE=true 开启
 
