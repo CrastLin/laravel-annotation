@@ -5,7 +5,7 @@ laravel-annotation 是基于PHP反射机制，将注解标记解析成功功能�
 基于基类Annotation可以自定更多功能注解类，提高开发效率，减少重复的无用工作。
 
 #### 软件要求
-支持laravel版本 >= 5.8，php版本 >= 7.0
+支持laravel版本 >= 5.8，php版本 >= 7.1
 
 
 #### 安装教程
@@ -111,6 +111,7 @@ laravel-annotation 是基于PHP反射机制，将注解标记解析成功功能�
 php artisan annotation:config
  ````
 > 配置说明
+* 以下为注解全局配置
   ##### controller_base
 * 控制器目录，默认为：app/Http/Controllers
   ##### controller_namespace
@@ -137,6 +138,48 @@ php artisan annotation:route
 > 定义规则
 * 使用@node(name=菜单名称 ...) 定义为菜单节点
 * 支持类注解和方法注解
+> 类注解模块
+````php
+ /**
+  * @node (name=应用名称, parent=父节点, menu=0/1, auth=0/1/2, order=0, params=xx=yy&cc=ss, icon=xxx, remark=xxx, actions=defaultPage,xxx,yyyy)
+  */
+```` 
+
+> 方法注解模块
+ ````php
+  /**
+   * @node (name=节点名称, parent=父节点, menu=0/1, auth=0/1/2, order=0, params=xx=yy&cc=ss, icon=xxx, code=query, remark=xxx, ignore, delete)
+   */
+ ```` 
+> 参数说明
+ ##### name
+ *（必须）注册节点名称, 如果使用子类名称，则需在子类的类注解定义 @node (name=xxx)，实际名称 = 子类的类注解name + 当前方法name
+ ##### parent
+ *（可选）注册节点的父节点，如果不定义，则做为一级节点菜单, 默认父节点为当前控制器的defaultPage方法
+ ##### menu
+ *（可选）注册节点显示类型，0：不在左侧菜单显示(默认)，1：显示左侧菜单；
+ ##### auth
+ *（可选）注册节点权限类型，0：只作为菜单，其它：验证权限(默认)
+ ##### order
+ *（可选）菜单排序, menu为1时有效
+ ##### params
+ （可选）菜单携带参数，格式为url参数格式
+ ##### icon
+ （可选）作为一级菜单时，定义图标
+ ##### code 
+ * (可选) 按钮权限控制代码，在admin_menu_permission表定义
+ ##### remark
+ *（可选）备注功能信息
+ ##### ignore 
+ * (可选) 是否忽略扫描
+ ##### delete
+ * (可选) 删除节点，存在子节点时无效
+ ##### actions
+ * (可选) 多态方法继承时，通过此注解指定继承的方法名，name获取组合名={子类name注解}+{父类方法name注解}
+> 特殊说明
+* 如果值为0，可以只定义属性名称，例如：@node (name=xxx, menu, auth, order, ignore)
+* 注解标记node和属性括号、参数间可以有空格  
+
 > 注解例子
 ````php
  class UserController
@@ -174,7 +217,7 @@ php artisan annotation:route
 * setUserName方法为index的子节点，需要定义他的parent注解，默认为当前控制器，所以parent=index 等于 parent=User/index（tips: 如果方法父节点为其它控制器时，则需要定义控制器名，不含Controller后缀）
 > 继承类使用
 ````php
- class BaseController implements \LaravelAnnotationNodeInterface
+ abstract class BaseController implements \LaravelAnnotationNodeInterface
  {
        /**
         * @node(menu=1, auth=0)
@@ -209,22 +252,63 @@ php artisan annotation:route
  }
 ````
 * 以上User控制器类注解，会合并到继承defaultPage方法上
- ##### 类注解模块
+````php
+   /**
+    * @node(name=用户中心, menu=1, auth=0, order=1)
+    */
+   function defaultPage()
+   {
+     // this method only for menu
+   }
+````
+> 多态控制器应用
+* 多态应用时，类注解名name叠加
 ````php
  /**
-  * @node (name=应用名称, parent=父节点, menu=0/1, auth=0/1/2, order=0, params=xx=yy&cc=ss, icon=xxx, remark=xxx, actions=defaultPage,xxx,yyyy)
+  * @node(name=动物园, order=1)
   */
-```` 
- ##### 方法注解模块
- ````php
-  /**
-   * @node (name=节点名称, parent=父节点, menu=0/1, auth=0/1/2, order=0, params=xx=yy&cc=ss, icon=xxx, code=query, remark=xxx, ignore, delete)
-   */
- ```` 
-> 参数说明
-
+ abstract class Animal extends BaseController
+ {
+   /**
+    * @node(name=主页, menu=1)
+    */
+   function index()
+   {
+     // todo
+   }
+   
+   /**
+    * @node(name=观看时间, menu=1)
+    */
+   function schedule()
+   {
+     // todo
+   }
+ }
+ 
+ /**
+  * @node(name=长颈鹿, actions=index, schedule)
+  */
+ class Giraffe extends Animal
+ {
+ }
+ 
+ /**
+  * @node(name=老虎)
+  */
+ class Tiger extends Animal
+ {  
+ }
+ 
+````
+* 通过类注解的actions指定继承方法名，访问index时，name等于：长颈鹿主页、老虎主页，访问schedule时，name等于：长颈鹿观看时间、老虎观看时间。
+> 节点demo
+* 请查看我的主页laravel-annotation-demo仓库获取，内附使用demo和需要使用的sql
 
  #### 代码贡献
- * Crastlin@163.com
+ * crastlin@163.com
+ 
+ #### 使用说明
+ * 使用此插件请遵守法律法规，请勿来在非法应用中使用，产生的一切后果和法律责任均与作者无关！
 
 
