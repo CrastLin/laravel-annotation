@@ -12,7 +12,6 @@ use Throwable;
 
 /**
  * Class Node
- * @package App\Library\Annotation
  * @author crastlin@163.com
  * @date 2022-03-15
  * instruction for use see the NodeInterface annotation

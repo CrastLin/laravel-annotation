@@ -8,7 +8,7 @@ namespace Crastlin\LaravelAnnotation\Annotation;
  * @package app\common\controller
  * @author crastlin@163.com
  * @date 2022-03-15
- * @node (name=应用名称, parent=父节点, menu=0/1, auth=0/1/2, order=0, params=xx=yy&cc=ss, icon=xxx, path=pagePath, component=demoComponent, remark=xxx, actions=defaultPage,xxx,yyyy)
+ * @node (name=应用名称, parent=父节点, menu=0/1, auth=0/1/2, order=0, params=xx=yy&cc=ss, icon=xxx, remark=xxx, actions=defaultPage,xxx,yyyy)
  * @description 此处理注解用于父类方法获取, 除name定义外,其它注解会覆盖父类中的default注解
  * @description actions 需要叠加名称在方法名, 多个方法用英文逗号分隔, 不定义时, 默认为defaultPage方法
  */

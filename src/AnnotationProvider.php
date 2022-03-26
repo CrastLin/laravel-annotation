@@ -33,8 +33,9 @@ class AnnotationProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                Commands\MakeRoute::class,
-                Commands\MakeNode::class,
+                Commands\AnnotationRoute::class,
+                Commands\AnnotationNode::class,
+                Commands\AnnotationConfig::class,
             ]);
         }
     }
@@ -82,7 +83,7 @@ class AnnotationProvider extends ServiceProvider
                         if ($distributedLock->acquire()) {
                             $moduleBasePath = !empty($config['controller_base']) ? rtrim($config['controller_base'], '/') : 'app/Http/Controllers';
                             $moduleBasePath = base_path($moduleBasePath);
-                            \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping(ltrim($path, "/{$matches[1]}"), $config['modules'], $moduleBasePath, $namespace, $routeBasePath, $config['default_middleware'] ?? [], !empty($config['auto_create_node']));
+                            \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping(ltrim($path, "/{$matches[1]}"), $config['modules'], $moduleBasePath, $namespace, $routeBasePath, $config['root_group'] ?? [], !empty($config['auto_create_node']));
                             $distributedLock->release();
                         }
                     } catch (Throwable $exception) {

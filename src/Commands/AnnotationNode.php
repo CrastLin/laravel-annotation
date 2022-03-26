@@ -1,18 +1,17 @@
 <?php
 
-
 namespace Crastlin\LaravelAnnotation\Commands;
 
 
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputArgument;
-use Crastlin\LaravelAnnotation\Annotation\Route;
+use Crastlin\LaravelAnnotation\Annotation\Node;
 
-class MakeRoute extends Command
+class AnnotationNode extends Command
 {
-    protected $signature = 'make:route {module?}';
+    protected $signature = 'annotation:node {module?}';
 
-    protected $description = '根据控制器注解创建路由表';
+    protected $description = '根据控制器注解创建权限节点';
 
     protected function getArguments()
     {
@@ -31,25 +30,23 @@ class MakeRoute extends Command
             return;
         }
         foreach ($moduleList as $module):
+            $this->info("开始创建 <模块：{$module}> 菜单和权限节点...");
             $module = ucfirst($module);
-            $this->info("开始创建 <模块：{$module}> 路由文件...");
-            $filePath = !empty($config['annotation_path']) ? rtrim($config['annotation_path'], '/') : 'data';
-            $routeBasePath = base_path($filePath . '/routes/' . $module);
             $scanBase = !empty($config['controller_base']) ? rtrim($config['controller_base'], '/') : 'app/Http/Controllers';
             $scanPath = base_path($scanBase . '/' . $module);
             if (is_dir($scanPath)) {
                 $namespaceBase = !empty($config['controller_namespace']) ? rtrim($config['controller_namespace'], '\\') : 'App\\Http\\Controllers';
                 $namespace = $namespaceBase . '\\' . $module;
                 try {
-                    Route::runCreateWithAnnotation($scanPath, $namespace, $routeBasePath, $config['auto_create_node'] ?? false, $config['default_middleware'] ?? []);
-                    $this->info("创建 <模块：{$module}> 路由成功");
+                    Node::runCreateWithAnnotation($scanPath, $namespace);
+                    $this->info("创建 <模块：{$module}> 菜单和权限节点成功");
                 } catch (\Throwable $exception) {
                     $this->warn("创建 <模块：{$module}> 失败" . $exception->getMessage());
                 }
+
             } else {
                 $this->error('创建失败，模块目录不存在');
             }
         endforeach;
-        $this->info('所有路由创建成功');
     }
 }

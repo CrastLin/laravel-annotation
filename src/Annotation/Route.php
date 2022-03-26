@@ -13,7 +13,6 @@ use Throwable;
 
 /**
  * Class Route
- * @package App\Library\Annotation
  * @author crastlin@163.com
  * @date 2022-03-15
  * @route 不带参数，默认method = get，路由名为：{模块名}/{控制器名（不含Controller）}/{方法名}
@@ -55,18 +54,18 @@ class Route extends Node
     ];
 
     /**
-     * @var array $rootMiddleware
+     * @var array $rootGroup
      */
-    protected $rootMiddleware;
+    protected $rootGroup;
 
     /**
-     * set root middleware
-     * @param array $rootMiddleware
+     * set root group
+     * @param array $rootGroup
      * @return $this
      */
-    function setRootMiddleware(array $rootMiddleware): Route
+    function setRootGroup(array $rootGroup): Route
     {
-        $this->rootMiddleware = $rootMiddleware;
+        $this->rootGroup = $rootGroup;
         return $this;
     }
 
@@ -86,7 +85,7 @@ class Route extends Node
     static function runCreateWithAnnotation(string $scanPath, string $namespace, ...$params): void
     {
         self::$groupParamList = null;
-        list($basePath, $repeatCreate, $rootMiddleware) = [
+        list($basePath, $repeatCreate, $rootGroup) = [
             $params[0] ?? 'data',
             $params[1] ?? false,
             $params[2] ?? [],
@@ -95,14 +94,14 @@ class Route extends Node
         if (!is_file($routePath) || $repeatCreate) {
             $aliasPath = "{$basePath}/alias.php";
             $routeAnnotationList = [];
-            self::scanAnnotation($scanPath, $namespace, function ($class) use (&$routeAnnotationList, $rootMiddleware) {
+            self::scanAnnotation($scanPath, $namespace, function ($class) use (&$routeAnnotationList, $rootGroup) {
                 // create route annotate object
                 $route = new Route($class);
                 // create group route annotate object
                 $group = new Group($class);
                 // 获取路由组类注解
                 $group->matchClassAnnotate();
-                $route->setRootMiddleware($rootMiddleware)->matchAllMethodAnnotation(function (ReflectionMethod $method) use ($route, $group, &$routeAnnotationList) {
+                $route->setRootGroup($rootGroup)->matchAllMethodAnnotation(function (ReflectionMethod $method) use ($route, $group, &$routeAnnotationList) {
 
                     $routeAnnotation = $route->parseRouteAnnotation($method, $group);
                     if (!empty($routeAnnotation))
@@ -155,7 +154,7 @@ class Route extends Node
                         }
                     endforeach;
                     // 写入文件
-                    $buildRoute = " /**\r\n  * @author crastlin@163.com\r\n  * @date 2022-03-12\r\n  * 命令：php artisan make:route 生成控器带注解的路由（可以在容器服务：RouteServiceProvider->boot 方法中调用Route::autoBuildRouteMapping(...)自动生成路由和权限菜单节点）\r\n  * 路由分组：@Group({\"prefix\":\"api\", \"namespace\": \"Api\", \"domain\": \"xxx.com\", \"middleware\": \"xxx.xx\", \"as\": \"xxx::\"})\r\n  * 例子：@route (method=post|get, url=自定义路由名)\r\n  * 例子：@RequestMapping(\"自定义路由名\") 另外还支持@PostMapping/@GetMapping/@OptionsMapping\r\n  * 路由规则说明：未定义url注解时，默认使用{控制器名}（不含Controller）/{方法名}做为路由\r\n  * 路由分组说明：创建路由时，可以添加默认分组，存在类@Group注解时，当前类的方法会全部划分到该分组中，路由分组根据层级成树状包装\r\n  */\r\n";
+                    $buildRoute = " /**\r\n  * @author crastlin@163.com\r\n  * @date 2022-03-12\r\n  * 命令：php artisan make:route 生成控器带注解的路由（可配置config/annotation 请求时自动生成路由和权限菜单节点）\r\n  * 路由分组：@Group({\"prefix\":\"api\", \"namespace\": \"Api\", \"domain\": \"xxx.com\", \"middleware\": \"xxx.xx\", \"as\": \"xxx::\"})\r\n  * 例子：@route (method=post|get, url=自定义路由名)\r\n  * 例子：@RequestMapping(\"自定义路由名\") 另外还支持@PostMapping/@GetMapping/@OptionsMapping\r\n  * 路由规则说明：未定义url注解时，默认使用{控制器名}（不含Controller）/{方法名}做为路由\r\n  * 路由分组说明：创建路由时，可以添加默认分组，存在类@Group注解时，当前类的方法会全部划分到该分组中，路由分组根据层级成树状包装\r\n  */\r\n";
                     if ($routeCode)
                         $buildRoute .= $routeCode;
                     if (!empty($groupList)) {
@@ -223,7 +222,7 @@ class Route extends Node
         $groupClassAnnotate = $group->getClassAnnotateResult();
         $groupClassAnnotate = $groupClassAnnotate ?: [];
         // merge default group annotate
-        $groupAnnotateList = !empty($this->rootMiddleware) && !empty($groupClassAnnotate) ? array_merge([$this->rootMiddleware], [$groupClassAnnotate]) : (!empty($groupClassAnnotate) ? [$groupClassAnnotate] : [$this->rootMiddleware]);
+        $groupAnnotateList = !empty($this->rootGroup) && !empty($groupClassAnnotate) ? array_merge([$this->rootGroup], [$groupClassAnnotate]) : (!empty($groupClassAnnotate) ? [$groupClassAnnotate] : [$this->rootGroup]);
         // get group method annotates result
         $groupMethodAnnotate = $group->matchMethodAnnotate($method);
         $groupMethodAnnotate = $groupMethodAnnotate ?: [];
