@@ -12,7 +12,7 @@ use ReflectionProperty;
 
 /**
  * Class Annotation
- * @package App\Library\Annotation
+ * @package Crastlin\LaravelAnnotation\Annotation
  * @author crastlin@163.com
  * @date 2022-03-15
  */

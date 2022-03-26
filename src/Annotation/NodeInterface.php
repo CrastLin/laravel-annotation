@@ -5,7 +5,7 @@ namespace Crastlin\LaravelAnnotation\Annotation;
 
 /**
  * Interface NodeInterface
- * @package app\common\controller
+ * @package Crastlin\LaravelAnnotation\Annotation
  * @author crastlin@163.com
  * @date 2022-03-15
  * @node (name=应用名称, parent=父节点, menu=0/1, auth=0/1/2, order=0, params=xx=yy&cc=ss, icon=xxx, remark=xxx, actions=defaultPage,xxx,yyyy)

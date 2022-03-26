@@ -4,15 +4,12 @@
 namespace Crastlin\LaravelAnnotation\Annotation;
 
 
-use Illuminate\Cache\RedisLock;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\Request;
 use ReflectionMethod;
 use Throwable;
 
 /**
  * Class Route
+ * @package Crastlin\LaravelAnnotation\Annotation
  * @author crastlin@163.com
  * @date 2022-03-15
  * @route 不带参数，默认method = get，路由名为：{模块名}/{控制器名（不含Controller）}/{方法名}

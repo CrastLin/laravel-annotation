@@ -12,6 +12,7 @@ use Throwable;
 
 /**
  * Class Node
+ * @package Crastlin\LaravelAnnotation\Annotation
  * @author crastlin@163.com
  * @date 2022-03-15
  * instruction for use see the NodeInterface annotation
@@ -207,23 +208,9 @@ class Node extends Annotation
             case 'update':
                 return $model->where('id', $data['id'])->update($data);
             case 'delete':
-                // 找出所有叶子集合
-                /* $nodeIdList = [];
-                 $findAllIds = function ($parentIds) use (&$findAllIds, &$nodeIdList, $model) {
-                     $ids = $model->whereIn('parent_id', $parentIds)->pluck('ids')->toArray();
-                     if (!empty($ids)) {
-                         $nodeIdList = array_merge($nodeIdList, $ids);
-                         return $findAllIds($ids);
-                     }
-                 };
-                 $ids = $findAllIds([$data['id']]);
-                 if (!empty($ids)) {
-                     $chuckList = array_chunk($ids, 30, true);
-                     foreach ($chuckList as $ids):
-                         $model->whereIn('id', $ids)->delete();
-                     endforeach;
-                 }*/
-                return $model->delete($data['id']);
+                // 判断是否存在子节点
+                $nodeExists = $model->where('parent_id', $data['id'])->count();
+                    return empty($nodeExists) ? $model->delete($data['id']) : false;
             default:
                 return false;
         }
@@ -280,12 +267,14 @@ class Node extends Annotation
             'parent_id' => $parentId,
             'status' => $annotate['menu'] ?? 0,
             'type' => $annotate['auth'] ?? 2,
-            'list_order' => $annotate['order'] ?? 0,
+            'sort' => $annotate['order'] ?? 0,
             'param' => $annotate['param'] ?? '',
             'name' => $name,
             'icon' => $annotate['icon'] ?? '',
             'remark' => $annotate['remark'] ?? '',
             'code' => $annotate['code'] ?? $this->action,
+            'rule' => "{$this->module}/{$this->controller}/{$this->action}",
+
         ];
         // need to insert node into menu table
         if (empty($data)) {

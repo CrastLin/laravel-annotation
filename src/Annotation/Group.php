@@ -8,6 +8,7 @@ use ReflectionMethod;
 
 /**
  * Class Group
+ * @package Crastlin\LaravelAnnotation\Annotation
  * @author crastlin@163.com
  * @date 2022-03-15
  * @example: (annotation must be a json data of format)
