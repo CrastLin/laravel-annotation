@@ -289,20 +289,20 @@ php artisan annotation:route
  /**
   * @node(name=长颈鹿, actions=index, schedule)
   */
- class Giraffe extends Animal
+ class GiraffeController extends Animal
  {
  }
  
  /**
   * @node(name=老虎)
   */
- class Tiger extends Animal
+ class TigerController extends Animal
  {  
  }
  
 ````
 * 通过类注解的actions指定继承方法名，访问index时，name等于：长颈鹿主页、老虎主页，访问schedule时，name等于：长颈鹿观看时间、老虎观看时间。
-> 节点demo
+> 节点注解demo
 * 请查看我的主页laravel-annotation-demo仓库获取，内附使用demo和需要使用的sql
 
  #### 代码贡献
