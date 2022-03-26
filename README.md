@@ -129,8 +129,9 @@ php artisan annotation:config
 
 > 命令说明
   ##### 生成路由
+* 使用命令生成所有模块的路由映射文件，生产环境时建议使用此方式，如需指定生成模块，则在命令后输入模块名
 ````shell script
-php artisan annotation:route
+php artisan annotation:route {module?}
 ````    
 
 3. ##### 菜单树与权限节点注解
@@ -302,13 +303,17 @@ php artisan annotation:route
  
 ````
 * 通过类注解的actions指定继承方法名，访问index时，name等于：长颈鹿主页、老虎主页，访问schedule时，name等于：长颈鹿观看时间、老虎观看时间。
+* 生成所有模块的菜单树和权限节点，如果需要指定模块，则在命令后输入模块名称：
+````shell script
+php artisan annotation:node {module?}
+````
 > 节点注解demo
 * 请查看我的主页laravel-annotation-demo仓库获取，内附使用demo和需要使用的sql
 
  #### 代码贡献
  * crastlin@163.com
  
- #### 使用说明
+ #### 使用必读
  * 使用此插件请遵守法律法规，请勿来在非法应用中使用，产生的一切后果和法律责任均与作者无关！
 
 
