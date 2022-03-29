@@ -221,11 +221,11 @@ class Route extends Node
         // merge default group annotate
         $groupKey = ucfirst($this->module);
         $routeGroup = !empty($this->rootGroup) && array_key_exists($groupKey, $this->rootGroup) ? $this->rootGroup[$groupKey] : [];
-        $groupAnnotateList = !empty($routeGroup) && !empty($groupClassAnnotate) ? array_merge($routeGroup, [$groupClassAnnotate]) : (!empty($groupClassAnnotate) ? [$groupClassAnnotate] : $routeGroup);
+        $groupAnnotateList = !empty($routeGroup) && !empty($groupClassAnnotate) ? array_merge($routeGroup, $groupClassAnnotate) : (!empty($groupClassAnnotate) ? $groupClassAnnotate : $routeGroup);
         // get group method annotates result
         $groupMethodAnnotate = $group->matchMethodAnnotate($method);
         $groupMethodAnnotate = $groupMethodAnnotate ?: [];
-        $groupAnnotateList = !empty($groupAnnotateList) && !empty($groupMethodAnnotate) ? array_merge($groupAnnotateList, [$groupMethodAnnotate]) : (!empty($groupMethodAnnotate) ? [$groupMethodAnnotate] : $groupAnnotateList);
+        $groupAnnotateList = !empty($groupAnnotateList) && !empty($groupMethodAnnotate) ? array_merge($groupAnnotateList, $groupMethodAnnotate) : (!empty($groupMethodAnnotate) ? $groupMethodAnnotate : $groupAnnotateList);
         $annotation['groupTree'] = null;
         if (!empty($groupAnnotateList)) {
             $unique = [];
