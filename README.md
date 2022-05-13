@@ -193,7 +193,7 @@ php artisan annotation:route {module?}
  ##### actions
  * (可选) 多态方法继承时，通过此注解指定继承的方法名，name获取组合名={子类name注解}+{父类方法name注解}
 > 特殊说明
-* 如果值为0，可以只定义属性名称，例如：@node (name=xxx, menu, auth, order, ignore)
+* 如果值为0，可以只定义属性名称，例如：@node (name=xxx, menu, auth, order)
 * 注解标记node和属性括号、参数间可以有空格  
 
 > 注解例子
@@ -202,7 +202,7 @@ php artisan annotation:route {module?}
  {
    
     /**
-    * @node(name=用户列表, menu=1, auth=0)
+    * @node(name=用户管理, menu=1, auth=0)
     */
    function defaultPage()
    {
@@ -218,7 +218,7 @@ php artisan annotation:route {module?}
    }
   
    /**
-    * @node(name=用户列表, parent=index)
+    * @node(name=编辑用户, parent=index)
     */
    function setUserName()
    {
@@ -245,7 +245,7 @@ php artisan annotation:route {module?}
  }
  
  /**
-  * @node(name=用户中心, order=1)
+  * @node(name=用户管理, order=1)
   */
  class UserController extends BaseController
  {
@@ -258,7 +258,7 @@ php artisan annotation:route {module?}
      }
     
      /**
-      * @node(name=用户列表, parent=index)
+      * @node(name=编辑用户, parent=index)
       */
      function setUserName()
      {
