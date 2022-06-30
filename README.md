@@ -10,8 +10,8 @@ laravel-annotation 是基于PHP反射机制，将注解标记解析成功功能�
 
 #### 安装教程
 
-1. composer require crastlin/laravel-annotation:1.2@alpha 安装
-2. 或在composer.json中的require添加 "crastlin/laravel-annotation":"^1.2@alpha"
+1. composer require crastlin/laravel-annotation:1.3@alpha 安装
+2. 或在composer.json中的require添加 "crastlin/laravel-annotation":"^1.3@alpha"
 
 #### 使用说明
 
@@ -26,7 +26,7 @@ laravel-annotation 是基于PHP反射机制，将注解标记解析成功功能�
  class IndexController
  {
    /**
-    * @Route(url=login, method=post)
+    * @Route(url="login", method="post")
     */
    function index()
    {
@@ -54,7 +54,7 @@ laravel-annotation 是基于PHP反射机制，将注解标记解析成功功能�
 
 2. ##### 路由分组注解
 > 定义规则
-* 使用Group(Json数据)注解定义路由闭包分组
+* 使用Group() 支持Json格式或按字段传值注解定义路由闭包分组
 * 路由分组注解支持类注解和方法注解
 > 注解例子
 ````php
@@ -157,14 +157,14 @@ php artisan annotation:route {module?}
 > 类注解模块
 ````php
  /**
-  * @node (name=应用名称, parent=父节点, menu=0/1, auth=0/1/2, order=0, params=xx=yy&cc=ss, icon=xxx, remark=xxx, actions=defaultPage,xxx,yyyy)
+  * @node (name=“应用名称”, parent=“父节点”, menu=0/1, auth=0/1/2, order=0, params=“xx=yy&cc=ss“, icon=”xxx“, remark=”xxx“, actions=”defaultPage,xxx,yyyy“)
   */
 ```` 
 
 > 方法注解模块
  ````php
   /**
-   * @node (name=节点名称, parent=父节点, menu=0/1, auth=0/1/2, order=0, params=xx=yy&cc=ss, icon=xxx, code=query, remark=xxx, ignore, delete)
+   * @node (name=”节点名称“, parent=”父节点“, menu=0/1, auth=0/1/2, order=0, params=”xx=yy&cc=ss“, icon=”xxx“, code=”query“, remark=”xxx“, ignore, delete)
    */
  ```` 
 > 参数说明
@@ -183,7 +183,7 @@ php artisan annotation:route {module?}
  ##### icon
  （可选）作为一级菜单时，定义图标
  ##### code 
- * (可选) 按钮权限控制代码，在admin_menu_permission表定义
+ * (可选) 按钮权限控制代码，在admin_menu_permission表定义，默认为query
  ##### remark
  *（可选）备注功能信息
  ##### ignore 
@@ -202,7 +202,7 @@ php artisan annotation:route {module?}
  {
    
     /**
-    * @node(name=用户管理, menu=1, auth=0)
+    * @Node(name="用户管理", menu=1, auth=0)
     */
    function defaultPage()
    {
@@ -210,7 +210,7 @@ php artisan annotation:route {module?}
    }
 
    /**
-    * @node(name=用户列表, menu=1)
+    * @Node(name="用户列表", menu=1)
     */
    function index()
    {
@@ -218,7 +218,7 @@ php artisan annotation:route {module?}
    }
   
    /**
-    * @node(name=编辑用户, parent=index)
+    * @Node(name="编辑用户", parent="index")
     */
    function setUserName()
    {
@@ -236,7 +236,7 @@ php artisan annotation:route {module?}
  abstract class BaseController implements \LaravelAnnotationNodeInterface
  {
        /**
-        * @node(menu=1, auth=0)
+        * @Node(menu=1, auth=0)
         */
        function defaultPage()
        {
@@ -245,12 +245,12 @@ php artisan annotation:route {module?}
  }
  
  /**
-  * @node(name=用户管理, order=1)
+  * @Node(name="用户管理", order=1)
   */
  class UserController extends BaseController
  {
      /**
-      * @node(name=用户列表, menu=1)
+      * @Node(name="用户列表", menu=1)
       */
      function index()
      {
@@ -258,7 +258,7 @@ php artisan annotation:route {module?}
      }
     
      /**
-      * @node(name=编辑用户, parent=index)
+      * @Node(name="编辑用户", parent="index")
       */
      function setUserName()
      {
@@ -270,7 +270,7 @@ php artisan annotation:route {module?}
 * 以上User控制器类注解，会合并到继承defaultPage方法上
 ````php
    /**
-    * @node(name=用户中心, menu=1, auth=0, order=1)
+    * @Node(name="用户中心", menu=1, auth=0, order=1)
     */
    function defaultPage()
    {
@@ -281,12 +281,12 @@ php artisan annotation:route {module?}
 * 多态应用时，类注解名name叠加
 ````php
  /**
-  * @node(name=动物园, order=1)
+  * @Node(name="动物园", order=1)
   */
  abstract class Animal extends BaseController
  {
    /**
-    * @node(name=主页, menu=1)
+    * @Node(name="主页", menu=1)
     */
    function index()
    {
@@ -294,7 +294,7 @@ php artisan annotation:route {module?}
    }
    
    /**
-    * @node(name=观看时间, menu=1)
+    * @Node(name="观看时间", menu=1)
     */
    function schedule()
    {
@@ -303,14 +303,14 @@ php artisan annotation:route {module?}
  }
  
  /**
-  * @node(name=长颈鹿, actions=index, schedule)
+  * @Node(name="长颈鹿", actions=index, schedule)
   */
  class GiraffeController extends Animal
  {
  }
  
  /**
-  * @node(name=老虎)
+  * @Node(name="老虎")
   */
  class TigerController extends Animal
  {  
