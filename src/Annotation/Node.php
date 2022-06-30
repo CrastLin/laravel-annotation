@@ -210,7 +210,7 @@ class Node extends Annotation
             case 'delete':
                 // 判断是否存在子节点
                 $nodeExists = $model->where('parent_id', $data['id'])->count();
-                    return empty($nodeExists) ? $model->delete($data['id']) : false;
+                return empty($nodeExists) ? $model->delete($data['id']) : false;
             default:
                 return false;
         }
@@ -260,6 +260,9 @@ class Node extends Annotation
                 throw new Exception("parent node: {$parentModule}->{$parentController}->{$parentAction} 父节点ID不存在", 521);
             }
         }
+
+        $permissionCodeList = ['query', 'add', 'edit', 'upload', 'download', 'delete', 'export', 'import', 'check', 'uncheck', 'refuse', 'disable', 'enable', 'toggle'];
+
         $newNode = [
             'app' => $this->module,
             'controller' => $this->controller,
@@ -272,7 +275,7 @@ class Node extends Annotation
             'name' => $name,
             'icon' => $annotate['icon'] ?? '',
             'remark' => $annotate['remark'] ?? '',
-            'code' => $annotate['code'] ?? $this->action,
+            'code' => !empty($annotate['code']) ? $annotate['code'] : (in_array($this->action, $permissionCodeList) ? $this->action : 'query'),
             'rule' => "{$this->module}/{$this->controller}/{$this->action}",
 
         ];
