@@ -10,8 +10,8 @@ laravel-annotation 是基于PHP反射机制，将注解标记解析成功功能�
 
 #### 安装教程
 
-1. composer require crastlin/laravel-annotation 安装
-2. 或在composer.json中的require添加 "crastlin/laravel-annotation"
+1. composer require crastlin/laravel-annotation:1.2@alpha 安装
+2. 或在composer.json中的require添加 "crastlin/laravel-annotation":"^1.2@alpha"
 
 #### 使用说明
 
