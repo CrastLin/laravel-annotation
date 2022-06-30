@@ -11,7 +11,7 @@ use Crastlin\LaravelAnnotation\Annotation\Annotation;
  * @Annotation
  * @Target(Target::TYPE | Target::METHOD)
  */
-class Node extends Annotation
+class Node
 {
 
     /**

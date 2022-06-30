@@ -11,7 +11,7 @@ use Crastlin\LaravelAnnotation\Annotation\Annotation;
  * @Annotation
  * @Target(Target::METHOD)
  */
-class Route extends Annotation
+class Route
 {
 
     /**
