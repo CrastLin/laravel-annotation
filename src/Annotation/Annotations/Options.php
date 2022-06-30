@@ -10,7 +10,7 @@ namespace Crastlin\LaravelAnnotation\Annotation\Annotations;
  * @Annotation
  * @Target(Target::METHOD)
  */
-class Option extends Route
+class Options extends Route
 {
 
 }

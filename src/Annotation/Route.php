@@ -31,13 +31,13 @@ class Route extends Node
 {
     protected $target = [self::ELEMENT_METHOD];
 
-    protected $annotateName = 'Route|RequestMapping|PostMapping|GetMapping|OptionsMapping';
+    protected $annotateName = 'Route|RequestMapping|Request|PostMapping|Post|GetMapping|Get|OptionsMapping|Options|DeleteMapping|Delete|PutMapping|Put';
 
     protected $defaultFields = ['method' => 'get'];
 
     protected $annotateNameMethodBatchSet = [
         'RequestMapping' => [
-            'method' => 'GET|POST',
+            'method' => 'GET|POST|OPTIONS|DELETE|PUT',
         ],
         'GetMapping' => [
             'method' => 'GET',
@@ -45,8 +45,11 @@ class Route extends Node
         'PostMapping' => [
             'method' => 'POST',
         ],
-        'OptionsMapping' => [
-            'method' => 'OPTIONS',
+        'DeleteMapping' => [
+            'method' => 'DELETE',
+        ],
+        'PutMapping' => [
+            'method' => 'PUT',
         ],
     ];
 
