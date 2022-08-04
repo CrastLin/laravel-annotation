@@ -5,8 +5,8 @@ namespace Crastlin\LaravelAnnotation;
 use Illuminate\Cache\RedisLock;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\Request;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Http\Request;
 use Throwable;
 
 class AnnotationProvider extends ServiceProvider
@@ -73,33 +73,67 @@ class AnnotationProvider extends ServiceProvider
         $namespace = !empty($config['controller_namespace']) ? rtrim($config['controller_namespace'], '\\') : 'App\\Http\\Controllers';
         $filePath = !empty($config['annotation_path']) ? rtrim($config['annotation_path'], '/') : 'data';
         $routeBasePath = base_path($filePath . '/routes');
-        if (!empty($config['auto_create_case'])) {
-            $path = Request::instance()->path();
-            if (!empty($config['modules']) && !empty($path) && preg_match('#^(\w+)(/\w+)?(/\w+)?$#', $path, $matches)) {
-                if (!empty($matches[1]) && in_array(ucfirst($matches[1]), $config['modules'])) {
-                    $redis = Redis::connection();
-                    $distributedLock = new RedisLock($redis, 'distributed_lock:create_route_with_node', 60);
-                    try {
-                        if ($distributedLock->acquire()) {
-                            $moduleBasePath = !empty($config['controller_base']) ? rtrim($config['controller_base'], '/') : 'app/Http/Controllers';
-                            $moduleBasePath = base_path($moduleBasePath);
-                            \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping(ltrim($path, "/{$matches[1]}"), $config['modules'], $moduleBasePath, $namespace, $routeBasePath, $config['root_group'] ?? [], !empty($config['auto_create_node']));
-                            $distributedLock->release();
+        $path = Request::capture()->path();
+        if (!empty($config['auto_create_case']) && !empty($config['modules'])) {
+            if (!empty($path) && preg_match('#^(\w+)(/\w+)?(/\w+)?$#', $path, $matches)) {
+                if (!empty($matches[1])) {
+                    $mapFile = "{$routeBasePath}/map.php";
+                    $map = is_file($mapFile) ? require_once $mapFile : [];
+                    $exists = !empty($map) && array_key_exists($path, $map);
+                    $actionExists = false;
+                    if ($exists) {
+                        $actionList = explode('@', $map[$path]);
+                        if (count($actionList) == 2) {
+                            $controller = $namespace . '\\' . $actionList[0];
+                            if (class_exists($controller) && method_exists($controller, $actionList[1]))
+                                $actionExists = true;
                         }
-                    } catch (Throwable $exception) {
-                        $distributedLock->release();
-                        Log::error('sync create route mapping was failed: ' . $exception->getMessage());
+                    }
+                    if (!$actionExists) {
+                        $redis = Redis::connection();
+                        $distributedLock = new RedisLock($redis, 'distributed_lock:create_route_with_node', 60);
+                        try {
+                            if ($distributedLock->acquire()) {
+                                $moduleBasePath = !empty($config['controller_base']) ? rtrim($config['controller_base'], '/') : 'app/Http/Controllers';
+                                $moduleBasePath = base_path($moduleBasePath);
+                                \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping($config['modules'], $moduleBasePath, $namespace, $routeBasePath, $config['root_group'] ?? [], !empty($config['auto_create_node']));
+
+                                $distributedLock->release();
+                            }
+                        } catch (Throwable $exception) {
+                            echo "file: " . $exception->getFile() . ' -> ' . $exception->getLine() . PHP_EOL;
+                            echo 'message: ' . $exception->getMessage();
+                            $distributedLock->release();
+                            Log::error('sync create route mapping was failed: ' . $exception->getMessage());
+                        }
                     }
                 }
             }
+
+            // 注册路由
+            $this->registerRoute($config, $routeBasePath, $namespace);
         }
+
+    }
+
+
+    /**
+     * register route map into Route
+     *
+     * @param array $config
+     * @param string $routeBasePath
+     * @param string $baseNamespace
+     * @return void
+     */
+    protected function registerRoute(array $config, string $routeBasePath, string $baseNamespace)
+    {
         // register route file
         if (!empty($config['modules'])) {
             foreach ($config['modules'] as $module) {
                 $module = ucfirst($module);
                 $annotationRoute = "{$routeBasePath}/{$module}/route.php";
                 if (is_file($annotationRoute))
-                    \Illuminate\Support\Facades\Route::namespace($namespace)->group($annotationRoute);
+                    \Illuminate\Support\Facades\Route::namespace($baseNamespace)->group($annotationRoute);
             }
         }
     }

@@ -74,6 +74,11 @@ class Route extends Node
      */
     protected static $groupParamList;
 
+    /**
+     * @var string $routeGlobalMap
+     */
+    protected static $routeGlobalMap;
+
 
     /**
      * run create with annotation
@@ -94,7 +99,7 @@ class Route extends Node
         if (!is_file($routePath) || $repeatCreate) {
             $aliasPath = "{$basePath}/alias.php";
             $routeAnnotationList = [];
-            self::scanAnnotation($scanPath, $namespace, function ($class) use (&$routeAnnotationList, $rootGroup) {
+            self::scanAnnotation($scanPath, $namespace, function ($class) use (&$routeAnnotationList, $rootGroup, $routePath) {
                 // create route annotate object
                 $route = new Route($class);
                 // create group route annotate object
@@ -112,16 +117,11 @@ class Route extends Node
                 if (!empty($routeAnnotationList)) {
                     if (!is_dir($basePath)) {
                         mkdir($basePath, 0755, true);
-                    } else {
-                        if (is_file($routePath))
-                            @unlink($routePath);
-                        if (is_file($aliasPath))
-                            @unlink($aliasPath);
                     }
                     $routeCode = '';
                     $groupList = [];
                     $aliasCode = [];
-                    $reduceGroupRoute = function (array $items, string $buildRoute, &$data) use (&$reduceGroupRoute) {
+                    $reduceGroupRoute = function (array $items, array $buildRoute, &$data) use (&$reduceGroupRoute) {
                         foreach ($items as $node => $item):
                             if (!empty($item) && count($item) > 0) {
                                 return $reduceGroupRoute($items[$node], $buildRoute, $data[$node]);
@@ -136,17 +136,29 @@ class Route extends Node
                             $isManyMethod = strpos($method, '|') !== false;
                             $methodList = $isManyMethod ? explode('|', $method) : [$method];
                             $url = $routeAnnotation['route']['url'];
+                            $routeSingleSet = [];
                             if (!$isManyMethod && in_array($method, ['get', 'post', 'options'])) {
+                                $methodString = $method;
                                 $routeSingle = sprintf("  Route::%s('%s', '%s')->name('%s');\r\n", $method, $url, $routeAnnotation['route']['action'], $routeAnnotation['route']['name']);
                             } else {
                                 $methodString = var_export(array_values($methodList), true);
+                                $method = 'match';
                                 $routeSingle = sprintf("  Route::match(%s, '%s', '%s')->name('%s');\r\n", $methodString, $url, $routeAnnotation['route']['action'], $routeAnnotation['route']['name']);
                             }
+                            $routeSingleSet = [
+                                'method' => $method,
+                                'methodString' => $methodString,
+                                'url' => $url,
+                                'action' => $routeAnnotation['route']['action'],
+                                'name' => $routeAnnotation['route']['name'],
+                            ];
                             $groupTree = $routeAnnotation['route']['groupTree'] ?? [];
+
                             if (!empty($groupTree)) {
-                                $reduceGroupRoute($groupTree, $routeSingle, $groupList);
+                                $reduceGroupRoute($groupTree, $routeSingleSet, $groupList);
                             } else {
                                 $routeCode .= $routeSingle;
+                                self::$routeGlobalMap[$url] = $routeAnnotation['route']['action'];
                             }
                         }
                         if (!empty($routeAnnotation['alias'])) {
@@ -158,18 +170,24 @@ class Route extends Node
                     if ($routeCode)
                         $buildRoute .= $routeCode;
                     if (!empty($groupList)) {
-                        $reduceRouteFile = function (array $items, string &$routeCode) use (&$reduceRouteFile, &$space) {
+                        $reduceRouteFile = function (array $items, string &$routeCode, string $prefix = '', string $namesapce = '') use (&$reduceRouteFile, &$space) {
                             foreach ($items as $node => $item):
                                 if (is_string($node)) {
                                     // 路由分组参数
                                     $params = self::$groupParamList[$node] ?? [];
                                     $paramsString = var_export($params, true);
                                     $routeCode .= "Route::group({$paramsString}, function () {\r\n";
-                                    $reduceRouteFile($item, $routeCode);
+                                    $reduceRouteFile($item, $routeCode, $prefix . (!empty($params['prefix']) ? "{$params['prefix']}/" : ''), $namesapce . (!empty($params['namespace']) ? "{$params['namespace']}/" : ''));
                                     $routeCode .= "});\r\n";
                                 } else {
                                     // 路由规则
-                                    $routeCode .= $item;
+                                    self::$routeGlobalMap["{$prefix}{$item['url']}"] = "{$namesapce}{$item['action']}";
+                                    if ($item['method'] == 'match') {
+                                        $routeCodeString = sprintf("  Route::match(%s, '%s', '%s')->name('%s');\r\n", $item['methodString'], $item['url'], $item['action'], $item['name']);
+                                    } else {
+                                        $routeCodeString = sprintf("  Route::%s('%s', '%s')->name('%s');\r\n", $item['method'], $item['url'], $item['action'], $item['name']);
+                                    }
+                                    $routeCode .= $routeCodeString;
                                 }
                             endforeach;
                         };
@@ -177,7 +195,7 @@ class Route extends Node
                         self::$groupParamList = null;
                     }
                     if (!empty($buildRoute))
-                        file_put_contents($routePath, "<?php\r\n{$buildRoute}", FILE_APPEND);
+                        file_put_contents($routePath, "<?php\r\n{$buildRoute}");
                     if (!empty($aliasCode))
                         file_put_contents($aliasPath, "<?php\r\nreturn " . var_export($aliasCode, true) . ";");
                 }
@@ -276,22 +294,24 @@ class Route extends Node
      * @param callable|null $callback
      * @throws Throwable
      */
-    static function autoBuildRouteMapping(string $routePath, array $moduleList, string $moduleBasePath, string $namespaceBase, string $routeBasePath, ?array $rootGroup = null, bool $isAsyncBuildNode = false, ?callable $callback = null)
+    static function autoBuildRouteMapping(array $moduleList, string $moduleBasePath, string $namespaceBase, string $routeBasePath, ?array $rootGroup = null, bool $isAsyncBuildNode = false, ?callable $callback = null)
     {
+        self::$routeGlobalMap = [];
         $modulePathMapping = [];
         $toCreateRoute = true;
+
         foreach ($moduleList as $module):
             $module = ucfirst(strtolower($module));
-            $routeFile = "{$routeBasePath}/{$module}/route.php";
-            $exists = is_file($routeFile);
-            if ($exists) {
-                // 如果存在,则查找是否定义
-                $content = file_get_contents($routeFile);
-                if ($toCreateRoute && stristr($content, $routePath) !== false) {
-                    $toCreateRoute = false;
-                    break;
-                }
-            }
+            /* $routeFile = "{$routeBasePath}/{$module}/route.php";
+             $exists = is_file($routeFile);
+             if ($exists) {
+                 // 如果存在,则查找是否定义
+                 $content = file_get_contents($routeFile);
+                 if ($toCreateRoute && stristr($content, $routePath) !== false) {
+                     $toCreateRoute = false;
+                     break;
+                 }
+            }*/
             $modulePath = $moduleBasePath . '/' . $module;
             if (is_dir($modulePath))
                 $modulePathMapping[$module] = $modulePath;
@@ -308,6 +328,10 @@ class Route extends Node
                 if (!is_null($callback) && $callback instanceof \Closure)
                     $callback($scanPath);
             endforeach;
+            if (!empty(self::$routeGlobalMap)) {
+                file_put_contents("{$routeBasePath}/map.php", "<?php\r\nreturn " . var_export(self::$routeGlobalMap, true) . ";");
+                self::$routeGlobalMap = null;
+            }
         }
     }
 
