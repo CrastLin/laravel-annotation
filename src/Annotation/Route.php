@@ -177,7 +177,7 @@ class Route extends Node
                                     $params = self::$groupParamList[$node] ?? [];
                                     $paramsString = var_export($params, true);
                                     $routeCode .= "Route::group({$paramsString}, function () {\r\n";
-                                    $reduceRouteFile($item, $routeCode, $prefix . (!empty($params['prefix']) ? "{$params['prefix']}/" : ''), $namesapce . (!empty($params['namespace']) ? "{$params['namespace']}/" : ''));
+                                    $reduceRouteFile($item, $routeCode, $prefix . (!empty($params['prefix']) ? "{$params['prefix']}/" : ''), $namesapce . (!empty($params['namespace']) ? "{$params['namespace']}\\" : ''));
                                     $routeCode .= "});\r\n";
                                 } else {
                                     // 路由规则
