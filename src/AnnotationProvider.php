@@ -109,11 +109,9 @@ class AnnotationProvider extends ServiceProvider
                     }
                 }
             }
-
-            // 注册路由
-            $this->registerRoute($config, $routeBasePath, $namespace);
         }
-
+        // 注册路由
+        $this->registerRoute($config, $routeBasePath, $namespace);
     }
 
 
