@@ -39,7 +39,7 @@ class SyncLockMiddleware
                 }
                 $redis = Redis::connection();
                 if (!$redis->set($key, 1, 'ex', $annotation['expire'] ?? 86400, 'nx'))
-                    return response()->json($annotation['respone'] ?? ['code' => 500, 'msg' => 'Request busy, please try again later'])->header('Pragma', 'no-cache')
+                    return response()->json($annotation['respone'] ?? ['code' => $annotation['code'] ?? 500, 'msg' => $annotation['msg'] ?? 'Request busy, please try again later'])->header('Pragma', 'no-cache')
                         ->header('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
             }
         }
