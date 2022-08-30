@@ -11,7 +11,7 @@ use ReflectionMethod;
  * @package Crastlin\LaravelAnnotation\Annotation
  * @author crastlin@163.com
  * @date 2022-03-15
- * @example: (annotation must be a json data of format)
+ * @example: (annotation parameters example: a json data of format or key=value, key2=value2,...)
  * @Group({"prefix":"api", "namespace": "Api", "domain": "xxx.com", "middleware": "xxx.xx", "as": "xxx::"})
  * @description:
  * prefix: set route url prefix

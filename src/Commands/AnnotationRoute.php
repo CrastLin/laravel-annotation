@@ -37,7 +37,7 @@ class AnnotationRoute extends Command
         $filePath = !empty($config['annotation_path']) ? rtrim($config['annotation_path'], '/') : 'data';
         $routeBasePath = base_path($filePath . '/routes');
         $this->info("开始创建路由文件...");
-        \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping($config['modules'], $moduleBasePath, $namespace, $routeBasePath, $config['root_group'] ?? [], !empty($config['auto_create_node']));
+        \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping($config['modules'], $moduleBasePath, $namespace, $routeBasePath, $config['root_group'] ?? [], $config);
         $this->info('所有路由创建成功');
     }
 }

@@ -81,12 +81,21 @@ class AnnotationProvider extends ServiceProvider
                     $map = is_file($mapFile) ? require_once $mapFile : [];
                     $exists = !empty($map) && array_key_exists($path, $map);
                     $actionExists = false;
-                    if ($exists) {
-                        $actionList = explode('@', $map[$path]);
+                    if ($exists && !empty($map[$path]['name'])) {
+                        $actionList = explode('@', $map[$path]['name']);
                         if (count($actionList) == 2) {
                             $controller = $namespace . '\\' . $actionList[0];
-                            if (class_exists($controller) && method_exists($controller, $actionList[1]))
-                                $actionExists = true;
+                            if (class_exists($controller) && method_exists($controller, $actionList[1])) {
+                                // check modify time
+                                $mtime = 0;
+                                if (!empty($map[$path]['mtime'])) {
+                                    $reflect = new \ReflectionClass($controller);
+                                    $mtime = filemtime($reflect->getFileName());
+                                }
+                                if (empty($map[$path]['mtime']) || $map[$path]['mtime'] == $mtime)
+                                    $actionExists = true;
+                            }
+
                         }
                     }
                     if (!$actionExists) {
@@ -96,7 +105,7 @@ class AnnotationProvider extends ServiceProvider
                             if ($distributedLock->acquire()) {
                                 $moduleBasePath = !empty($config['controller_base']) ? rtrim($config['controller_base'], '/') : 'app/Http/Controllers';
                                 $moduleBasePath = base_path($moduleBasePath);
-                                \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping($config['modules'], $moduleBasePath, $namespace, $routeBasePath, $config['root_group'] ?? [], !empty($config['auto_create_node']));
+                                \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping($config['modules'], $moduleBasePath, $namespace, $routeBasePath, $config['root_group'] ?? [], $config);
 
                                 $distributedLock->release();
                             }
@@ -109,11 +118,9 @@ class AnnotationProvider extends ServiceProvider
                     }
                 }
             }
-
-            // 注册路由
-            $this->registerRoute($config, $routeBasePath, $namespace);
         }
-
+        // 注册路由
+        $this->registerRoute($config, $routeBasePath, $namespace);
     }
 
 

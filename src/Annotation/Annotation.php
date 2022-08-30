@@ -129,11 +129,13 @@ abstract class Annotation implements AnnotationInterface
         // 扫描控制器
         $directoryList = scandir($scanPath);
         foreach ($directoryList as $directory):
-            if ($directory == '.' || $directory == '..')
+            if ($directory == '.' || $directory == '..' || is_dir($directory))
                 continue;
             $fileName = rtrim($directory, '.php');
+            $file = "{$scanPath}/{$directory}";
+            $mtime = filemtime($file);
             $classNamespace = $namespace . '\\' . $fileName;
-            $callback($classNamespace);
+            $callback($classNamespace, $mtime);
         endforeach;
     }
 

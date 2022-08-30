@@ -75,9 +75,24 @@ class Route extends Node
     protected static $groupParamList;
 
     /**
-     * @var string $routeGlobalMap
+     * @var array $config
+     */
+    protected static $config;
+
+    /**
+     * @var string $rootSavePath
+     */
+    protected static $rootSavePath;
+
+    /**
+     * @var array $routeGlobalMap
      */
     protected static $routeGlobalMap;
+
+    /**
+     * @var array $anotherAnnotationGlobalMap
+     */
+    protected static $anotherAnnotationGlobalMap;
 
 
     /**
@@ -99,13 +114,27 @@ class Route extends Node
         if (!is_file($routePath) || $repeatCreate) {
             $aliasPath = "{$basePath}/alias.php";
             $routeAnnotationList = [];
-            self::scanAnnotation($scanPath, $namespace, function ($class) use (&$routeAnnotationList, $rootGroup, $routePath) {
-                // create route annotate object
-                $route = new Route($class);
+            $lockAnnotationSet = [];
+            $lastModifyTimeList = [];
+            self::scanAnnotation($scanPath, $namespace, function (string $class, ?int $mtime) use (&$routeAnnotationList, &$lockAnnotationSet, &$lastModifyTimeList, $rootGroup, $routePath, $namespace) {
                 // create group route annotate object
                 $group = new Group($class);
-                // 获取路由组类注解
                 $group->matchClassAnnotate();
+
+                // create controller sync lock
+                $lockAnnotation = new SyncLock($class);
+
+                $classStringList = explode('\\', $class);
+                $classShoreName = join('\\', array_slice($classStringList, 3));
+                $lastModifyTimeList[$classShoreName] = $mtime;
+                $lockAnnotation->matchAllMethodAnnotation(function (array $annotation, ReflectionMethod $method) use ($classShoreName, &$lockAnnotationSet) {
+                    $action = "{$classShoreName}@{$method->name}";
+                    if (empty($annotation['response']) && !empty(self::$config['lock']['response']))
+                        $annotation['response'] = self::$config['lock']['response'];
+                    $lockAnnotationSet[$action] = $annotation;
+                });
+                // create route annotate object
+                $route = new Route($class);
                 $route->setRootGroup($rootGroup)->matchAllMethodAnnotation(function (ReflectionMethod $method) use ($route, $group, &$routeAnnotationList) {
 
                     $routeAnnotation = $route->parseRouteAnnotation($method, $group);
@@ -158,7 +187,13 @@ class Route extends Node
                                 $reduceGroupRoute($groupTree, $routeSingleSet, $groupList);
                             } else {
                                 $routeCode .= $routeSingle;
-                                self::$routeGlobalMap[$url] = $routeAnnotation['route']['action'];
+                                $classes = explode('@', $routeAnnotation['route']['action']);
+                                self::$routeGlobalMap[$url] = [
+                                    'name' => $routeAnnotation['route']['action'],
+                                    'mtime' => $lastModifyTimeList[$classes[0]] ?? 0,
+                                ];
+                                if (!empty($lockAnnotationSet) && array_key_exists($routeAnnotation['route']['action'], $lockAnnotationSet))
+                                    self::$anotherAnnotationGlobalMap['lock_annotation'][$url] = $lockAnnotationSet[$routeAnnotation['route']['action']];
                             }
                         }
                         if (!empty($routeAnnotation['alias'])) {
@@ -170,18 +205,28 @@ class Route extends Node
                     if ($routeCode)
                         $buildRoute .= $routeCode;
                     if (!empty($groupList)) {
-                        $reduceRouteFile = function (array $items, string &$routeCode, string $prefix = '', string $namesapce = '') use (&$reduceRouteFile, &$space) {
+                        $reduceRouteFile = function (array $items, string &$routeCode, string $prefix = '', string $namesapce = '') use (&$reduceRouteFile, &$space, &$lockAnnotationSet, &$lastModifyTimeList) {
                             foreach ($items as $node => $item):
                                 if (is_string($node)) {
                                     // 路由分组参数
                                     $params = self::$groupParamList[$node] ?? [];
                                     $paramsString = var_export($params, true);
                                     $routeCode .= "Route::group({$paramsString}, function () {\r\n";
-                                    $reduceRouteFile($item, $routeCode, $prefix . (!empty($params['prefix']) ? "{$params['prefix']}/" : ''), $namesapce . (!empty($params['namespace']) ? "{$params['namespace']}/" : ''));
+                                    $reduceRouteFile($item, $routeCode, $prefix . (!empty($params['prefix']) ? "{$params['prefix']}/" : ''), $namesapce . (!empty($params['namespace']) ? "{$params['namespace']}\\" : ''));
                                     $routeCode .= "});\r\n";
                                 } else {
                                     // 路由规则
-                                    self::$routeGlobalMap["{$prefix}{$item['url']}"] = "{$namesapce}{$item['action']}";
+                                    $url = "{$prefix}{$item['url']}";
+                                    $classShoreName = "{$namesapce}{$item['action']}";
+                                    $classes = explode('@', $classShoreName);
+                                    self::$routeGlobalMap[$url] = [
+                                        'name' => $classShoreName,
+                                        'mtime' => $lastModifyTimeList[$classes[0]] ?? 0,
+                                    ];
+
+                                    if (!empty($lockAnnotationSet) && array_key_exists($classShoreName, $lockAnnotationSet))
+                                        self::$anotherAnnotationGlobalMap['lock_annotation'][$url] = $lockAnnotationSet[$classShoreName];
+
                                     if ($item['method'] == 'match') {
                                         $routeCodeString = sprintf("  Route::match(%s, '%s', '%s')->name('%s');\r\n", $item['methodString'], $item['url'], $item['action'], $item['name']);
                                     } else {
@@ -294,11 +339,13 @@ class Route extends Node
      * @param callable|null $callback
      * @throws Throwable
      */
-    static function autoBuildRouteMapping(array $moduleList, string $moduleBasePath, string $namespaceBase, string $routeBasePath, ?array $rootGroup = null, bool $isAsyncBuildNode = false, ?callable $callback = null)
+    static function autoBuildRouteMapping(array $moduleList, string $moduleBasePath, string $namespaceBase, string $routeBasePath, ?array $rootGroup = null, array $annotationConfig = [])
     {
         self::$routeGlobalMap = [];
         $modulePathMapping = [];
         $toCreateRoute = true;
+        self::$rootSavePath = $routeBasePath;
+        self::$config = $annotationConfig;
 
         foreach ($moduleList as $module):
             $module = ucfirst(strtolower($module));
@@ -323,14 +370,18 @@ class Route extends Node
                 $basePath = "{$routeBasePath}/{$module}";
                 self::runCreateWithAnnotation($scanPath, $namespace, $basePath, true, $rootGroup);
                 // 自动更新节点
-                if ($isAsyncBuildNode)
+                if (!empty($annotationConfig['auto_create_node']))
                     Node::runCreateWithAnnotation($scanPath, $namespace);
-                if (!is_null($callback) && $callback instanceof \Closure)
-                    $callback($scanPath);
             endforeach;
             if (!empty(self::$routeGlobalMap)) {
                 file_put_contents("{$routeBasePath}/map.php", "<?php\r\nreturn " . var_export(self::$routeGlobalMap, true) . ";");
                 self::$routeGlobalMap = null;
+            }
+            if (!empty(self::$anotherAnnotationGlobalMap)) {
+                foreach (self::$anotherAnnotationGlobalMap as $name => $list) {
+                    file_put_contents("{$routeBasePath}/{$name}.php", "<?php\r\nreturn " . var_export($list, true) . ";");
+                }
+                self::$anotherAnnotationGlobalMap = null;
             }
         }
     }

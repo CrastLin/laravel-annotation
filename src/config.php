@@ -45,4 +45,13 @@ return [
      | Nodes are automatically created on request
      */
     'auto_create_node' => env('ANNOTATION_AUTO_CRATE_NODE', false),
+
+    /*
+     | 分布式锁配置
+     | DSC lock config
+     */
+    'lock' => [
+        'response' => [],
+    ],
+
 ];
