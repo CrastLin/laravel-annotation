@@ -2,6 +2,7 @@
 
 namespace Crastlin\LaravelAnnotation;
 
+use Crastlin\LaravelAnnotation\Annotation\Route;
 use Illuminate\Cache\RedisLock;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
@@ -75,46 +76,23 @@ class AnnotationProvider extends ServiceProvider
         $routeBasePath = base_path($filePath . '/routes');
         $path = Request::capture()->path();
         if (!empty($config['auto_create_case']) && !empty($config['modules'])) {
-            if (!empty($path) && preg_match('#^(\w+)(/\w+)?(/\w+)?$#', $path, $matches)) {
-                if (!empty($matches[1])) {
-                    $mapFile = "{$routeBasePath}/map.php";
-                    $map = is_file($mapFile) ? require_once $mapFile : [];
-                    $exists = !empty($map) && array_key_exists($path, $map);
-                    $actionExists = false;
-                    if ($exists && !empty($map[$path]['name'])) {
-                        $actionList = explode('@', $map[$path]['name']);
-                        if (count($actionList) == 2) {
-                            $controller = $namespace . '\\' . $actionList[0];
-                            if (class_exists($controller) && method_exists($controller, $actionList[1])) {
-                                // check modify time
-                                $mtime = 0;
-                                if (!empty($map[$path]['mtime'])) {
-                                    $reflect = new \ReflectionClass($controller);
-                                    $mtime = filemtime($reflect->getFileName());
-                                }
-                                if (empty($map[$path]['mtime']) || $map[$path]['mtime'] == $mtime)
-                                    $actionExists = true;
-                            }
+            if (!empty($path) && preg_match('#^(\w+)(/[\w/]+)?$#', $path, $matches)) {
+                if (!empty($matches[1]) && !Route::exists($path, $namespace, $routeBasePath)) {
+                    $redis = Redis::connection();
+                    $distributedLock = new RedisLock($redis, 'distributed_lock:create_route_with_node', 60);
+                    try {
+                        if ($distributedLock->acquire()) {
+                            $moduleBasePath = !empty($config['controller_base']) ? rtrim($config['controller_base'], '/') : 'app/Http/Controllers';
+                            $moduleBasePath = base_path($moduleBasePath);
+                            \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping($config['modules'], $moduleBasePath, $namespace, $routeBasePath, $config['root_group'] ?? [], $config);
 
-                        }
-                    }
-                    if (!$actionExists) {
-                        $redis = Redis::connection();
-                        $distributedLock = new RedisLock($redis, 'distributed_lock:create_route_with_node', 60);
-                        try {
-                            if ($distributedLock->acquire()) {
-                                $moduleBasePath = !empty($config['controller_base']) ? rtrim($config['controller_base'], '/') : 'app/Http/Controllers';
-                                $moduleBasePath = base_path($moduleBasePath);
-                                \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping($config['modules'], $moduleBasePath, $namespace, $routeBasePath, $config['root_group'] ?? [], $config);
-
-                                $distributedLock->release();
-                            }
-                        } catch (Throwable $exception) {
-                            echo "file: " . $exception->getFile() . ' -> ' . $exception->getLine() . PHP_EOL;
-                            echo 'message: ' . $exception->getMessage();
                             $distributedLock->release();
-                            Log::error('sync create route mapping was failed: ' . $exception->getMessage());
                         }
+                    } catch (Throwable $exception) {
+                        echo "file: " . $exception->getFile() . ' -> ' . $exception->getLine() . PHP_EOL;
+                        echo 'message: ' . $exception->getMessage();
+                        $distributedLock->release();
+                        Log::error('sync create route mapping was failed: ' . $exception->getMessage());
                     }
                 }
             }

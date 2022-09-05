@@ -31,7 +31,7 @@ class Route extends Node
 {
     protected $target = [self::ELEMENT_METHOD];
 
-    protected $annotateName = 'Route|RequestMapping|Request|PostMapping|Post|GetMapping|Get|OptionsMapping|Options|DeleteMapping|Delete|PutMapping|Put';
+    protected $annotateName = 'Route|RequestMapping|Request|PostMapping|Post|GetMapping|Get|OptionsMapping|Options|DeleteMapping|Delete|PutMapping|Put|Resource';
 
     protected $defaultFields = ['method' => 'get'];
 
@@ -93,6 +93,80 @@ class Route extends Node
      * @var array $anotherAnnotationGlobalMap
      */
     protected static $anotherAnnotationGlobalMap;
+
+
+    // parse base url
+    static function parseBaseUrl(string $url)
+    {
+        $minCount = $maxCount = 0;
+        $vars = '';
+        if (!empty($url) && preg_match_all('(\{[a-z]+[\w\?]*\})', $url, $matches)) {
+            $url = str_replace($matches[0], '', $url);
+            $urlStringList = explode('/', $url);
+            $optCount = 0;
+            foreach ($matches[0] as $k => $value) {
+                $vars .= ($k > 0 ? ',' : '') . $value;
+                if (strpos($value, '?') !== false)
+                    ++$optCount;
+            }
+            $url = join('/', array_filter($urlStringList));
+            $maxCount = count($matches[0]);
+            $vars = join(',', $matches[0]);
+            $minCount = $maxCount - $optCount;
+        }
+        return [$url, $minCount, $maxCount, $vars];
+    }
+
+
+    /**
+     * check route exists
+     * @param string $path the request url string
+     * @param string $namespace the controllers base namespace
+     * @param string $mapBasePath the base path of map file cache
+     * @param int $varCount
+     * @return bool
+     */
+    static function exists(string $path, string $namespace, string $mapBasePath, array $mapRecords = null, $varCount = 0): bool
+    {
+        if (is_null($mapRecords)) {
+            $mapFile = "{$mapBasePath}/map.php";
+            $mapRecords = is_file($mapFile) ? require_once $mapFile : [];
+        }
+        if (!empty($mapRecords) && array_key_exists($path, $mapRecords)) {
+            foreach ($mapRecords[$path] as $cs => $map):
+                if (strpos($cs, '-') === false)
+                    break;
+                list($minCount, $maxCount) = explode('-', $cs);
+                if ($varCount > 0 && ($varCount < $minCount || $varCount > $maxCount))
+                    continue;
+                if (empty($map['name']))
+                    break;
+                $actionList = explode('@', $map['name']);
+                if (count($actionList) == 2) {
+                    $controller = $namespace . '\\' . $actionList[0];
+                    if (class_exists($controller) && method_exists($controller, $actionList[1])) {
+                        // check modify time
+                        $mtime = 0;
+                        if (!empty($map['mtime'])) {
+                            $reflect = new \ReflectionClass($controller);
+                            $mtime = filemtime($reflect->getFileName());
+                        }
+                        if (empty($map['mtime']) || $map['mtime'] == $mtime)
+                            return true;
+                    }
+                }
+                break;
+            endforeach;
+            return false;
+        }
+        // repeat check base path
+        $pathList = explode('/', $path);
+        if (count($pathList) > 1) {
+            array_pop($pathList);
+            return self::exists(join('/', $pathList), $namespace, $mapBasePath, $mapRecords, ++$varCount);
+        }
+        return false;
+    }
 
 
     /**
@@ -188,9 +262,11 @@ class Route extends Node
                             } else {
                                 $routeCode .= $routeSingle;
                                 $classes = explode('@', $routeAnnotation['route']['action']);
-                                self::$routeGlobalMap[$url] = [
+                                [$baseUrl, $minCount, $maxCount, $vars] = self::parseBaseUrl($url);
+                                self::$routeGlobalMap[$baseUrl]["{$minCount}-{$maxCount}"] = [
                                     'name' => $routeAnnotation['route']['action'],
                                     'mtime' => $lastModifyTimeList[$classes[0]] ?? 0,
+                                    'vars' => $vars,
                                 ];
                                 if (!empty($lockAnnotationSet) && array_key_exists($routeAnnotation['route']['action'], $lockAnnotationSet))
                                     self::$anotherAnnotationGlobalMap['lock_annotation'][$url] = $lockAnnotationSet[$routeAnnotation['route']['action']];
@@ -219,9 +295,11 @@ class Route extends Node
                                     $url = "{$prefix}{$item['url']}";
                                     $classShoreName = "{$namesapce}{$item['action']}";
                                     $classes = explode('@', $classShoreName);
-                                    self::$routeGlobalMap[$url] = [
+                                    [$baseUrl, $minCount, $maxCount, $vars] = self::parseBaseUrl($url);
+                                    self::$routeGlobalMap[$baseUrl]["{$minCount}-{$maxCount}"] = [
                                         'name' => $classShoreName,
                                         'mtime' => $lastModifyTimeList[$classes[0]] ?? 0,
+                                        'vars' => $vars,
                                     ];
 
                                     if (!empty($lockAnnotationSet) && array_key_exists($classShoreName, $lockAnnotationSet))

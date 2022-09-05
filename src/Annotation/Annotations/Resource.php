@@ -9,9 +9,8 @@ use Crastlin\LaravelAnnotation\Annotation\Annotation;
  * Class Resource
  * @package Crastlin\LaravelAnnotation\Annotation
  * @Annotation
- * @Target(Target::PROPERTY)
+ * @Target(Target::METHOD)
  */
-class Resource extends Annotation
+class Resource extends Route
 {
-    public $required = true;
 }
