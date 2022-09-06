@@ -27,6 +27,7 @@ class SyncLockMiddleware
                     if (!empty($annotation['suffix']))
                         $annotation['suffixes'][] = $annotation['suffix'];
                     $suffixKey = '';
+                    $all = $request->all();
                     foreach ($annotation['suffixes'] as $suffix):
                         $suffixList = explode('.', $suffix);
                         $count = count($suffixList);
@@ -35,7 +36,8 @@ class SyncLockMiddleware
                             $count >= 2 ? $suffixList[1] : $suffixList[0],
                         ];
                         if (substr($parameter, 0, 1) == '$') {
-                            $value = $method == 'header' ? $request->header(substr($parameter, 1)) : $request->input(substr($parameter, 1));
+                            $field = substr($parameter, 1);
+                            $value = $method == 'header' ? $request->header($field) : $all[$field] ?? '';
                             $suffixKey .= is_string($value) ? $value : serialize($value);
                         } else {
                             $suffixKey .= ltrim($annotation['suffix'], ':');

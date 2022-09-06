@@ -83,10 +83,12 @@ class SyncLock extends Annotation
                 strtolower($shortName . '_' . (!empty($annotation['name']) ? $annotation['name'] : $method->name)),
                 !empty($annotation['prefix']) ? rtrim($annotation['prefix'], '_') . '_' : 'sync_lock_annotation_',
                 !empty($annotation['suffix']) && is_string($annotation['suffix']) ? ltrim($annotation['suffix'], ':') : '',
-                !empty($annotation['suffixes']) && is_array($annotation['suffixes']) ? $annotation['suffixes'] : [],
+                !empty($annotation['suffixes']) && is_array($annotation['suffixes']) ? array_map(function ($value) {
+                    return preg_replace('~\"([\w\$\.]+)\"~', '$1', $value);
+                }, $annotation['suffixes']) : [],
 
                 !empty($annotation['expire']) && is_numeric($annotation['expire']) && $annotation['expire'] > 0 ? (int)$annotation['expire'] : 3600,
-                !empty($annotation['once']) ? 1 : 0,
+                !empty($annotation['once']) && $annotation['once'] != 'false' ? 1 : 0,
                 !empty($annotation['response']) ? $annotation['response'] : (isset($annotation['code']) ? ['code' => (int)$annotation['code'], 'msg' => $annotation['msg'] ?? ''] : []),
             ];
             if (!is_null($callable) && $callable instanceof \Closure) {

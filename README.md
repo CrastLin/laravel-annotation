@@ -10,7 +10,7 @@ laravel-annotation 是基于PHP反射机制，将注解标记解析成功功能�
 
 #### 安装教程
 
-1. composer require crastlin/laravel-annotation:v2.0.0beta 安装
+1. composer require crastlin/laravel-annotation:v2.0.3beta 安装
 2. 或在composer.json中的require添加 "crastlin/laravel-annotation":"^v2.0.3beta"
 
 #### 使用说明
@@ -22,7 +22,7 @@ laravel-annotation 是基于PHP反射机制，将注解标记解析成功功能�
 * 同时会生成自定义路由对应控制器规则的别名文件 alias.php
 * 路由注解仅支持方法注解，定义在class无效
 * 使用PHP Storm时，在settings / Plugins 中搜索php-annotations，使用时会有相应的提示。
-> 注解例子
+> 注解例子1
 ````php
  class IndexController
  {
@@ -49,9 +49,36 @@ laravel-annotation 是基于PHP反射机制，将注解标记解析成功功能�
 ````
 以上两种注解生成的路由配置结果相同：
 ````php
- Route::post('login', 'IndexController@index');
+ Route::post('login', 'IndexController@index')->name('index.index');
 ````
+
 * 说明：如果不定义url或value，则默认为：{当前控制器}（不含Controller）/{方法名}作为url
+
+> 注解例子2
+````php
+ class IndexController
+ {
+    /**
+     * @PostMapping("article/{cate}")
+     */
+    function index(){
+    
+    }
+    
+    /**
+     * @PostMapping("article/{cate}/{id}/{page?}")
+     */
+    function detail(){
+      // todo
+    }
+ }
+````
+
+以上两种注解生成的路由配置结果相同：
+````php
+ Route::post('article/{cate}', 'IndexController@index')->name('index.index');
+ Route::post('article/{cate}/{id}/{page?}', 'IndexController@detail')->name('index.detail');
+````
 
 2. ##### 路由分组注解
 > 定义规则
@@ -325,6 +352,60 @@ php artisan annotation:node {module?}
 ````
 > 节点注解demo
 * 请查看我的主页laravel-annotation-demo仓库获取，内附使用demo和需要使用的sql
+
+
+4. ##### 分布式原子锁注解 (2022-8 新增，需要使用: composer require crastlin/laravel-annotation:v2.0.3beta)
+* 经常遇到有些情况需要防止并发操作的应用场景，可以使用该注解创建原子操作锁，防止并发访问。
+> 使用需要在app/Http/Kernel.php中增加中间件配置
+````php
+ class Kernel extends \Illuminate\Foundation\Http\Kernel
+ {
+    protected $middleware = [
+       // ...
+       Crastlin\LaravelAnnotation\Middleware\SyncLockMiddleware::class,
+    ];
+ }
+````
+> 然后在控制器中定义规则
+* 使用@SyncLock(expire=锁时间, ...)
+* 只支持方法注解
+
+> 参数说明
+##### prefix
+* （可选）锁key前缀名，默认为：sync_lock_annotation
+##### name
+*（可选）锁key名，默认为模块名+控制器名+方法名，完整的名称为：{prefix}_{name}
+##### suffix
+*（可选）锁后缀名，可解析输入参数变量，例如请求get id, 则可以使用: suffix="$id" 或者 suffix="get.$id"  或者 suffix="input.$id"
+支持：input/get/post/put/delete/header等，其中input包含get/post/put/delete
+##### suffixes
+*（可选）多个参数后缀，使用：suffix={"xxx", "yyy"}，同样也支持解析输入变量，例如：suffixes={"$id", "header.$token", "post.name", ...}
+##### expire
+*（可选）锁有效期，单位秒，默认为86400
+##### once
+（可选）是否自动释放锁，默认为否，即执行完成自动释放锁
+##### response
+（可选）拒绝时的响应数据，json格式，也可以单独配置code或msg，或者在config/annotation.php中配置lock => response
+##### code
+（可选）response中的自定义code
+##### msg
+（可选）response中的自定义message
+
+> 示例
+````php
+ class IndexController
+ {
+    /**
+     * @RequestMapping("test")
+     * @SyncLock(expire=30, suffix="$id")
+     */
+    function test()
+    {
+       //todo
+    }
+ }
+````
+* 以上的效果是同一的id请求会限制并发
 
  #### 代码贡献
  * crastlin@163.com
