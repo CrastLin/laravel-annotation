@@ -28,8 +28,14 @@ class SyncLockMiddleware
                         $annotation['suffixes'][] = $annotation['suffix'];
                     $suffixKey = '';
                     foreach ($annotation['suffixes'] as $suffix):
-                        if (substr($suffix, 0, 1) == '$') {
-                            $value = $request->input(substr($suffix, 1));
+                        $suffixList = explode('.', $suffix);
+                        $count = count($suffixList);
+                        list($method, $parameter) = [
+                            $count >= 2 ? $suffixList[0] : 'input',
+                            $count >= 2 ? $suffixList[1] : $suffixList[0],
+                        ];
+                        if (substr($parameter, 0, 1) == '$') {
+                            $value = $method == 'header' ? $request->header(substr($parameter, 1)) : $request->input(substr($parameter, 1));
                             $suffixKey .= is_string($value) ? $value : serialize($value);
                         } else {
                             $suffixKey .= ltrim($annotation['suffix'], ':');

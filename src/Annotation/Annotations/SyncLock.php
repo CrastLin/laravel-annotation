@@ -21,18 +21,30 @@ class SyncLock
 
     /**
      * @var string $suffix lock suffix of lock name
+     *
+     * if using parameter of request, then using: suffix="$parameterName", the parameter method default is get or post
+     * when you need special method, then using:
+     *   header           suffix="header.$parameterName"
+     *   input(default)   suffix="$parameterName" or suffix="input.$parameterName"
+     *   get              suffix="get.$parameterName"
+     *   post             suffix="post.$parameterName"
+     *   put              suffix="put.$parameterName"
      */
     public $suffix;
 
+
     /**
      * @var array $suffixes more suffix of lock name
+     *
+     * if using parameters of request, then using {"$parameterName", ...}
+     * same of $suffix using that about method
      */
     public $suffixes;
 
     /**
-     * @var bool $once only enty once when it expired
+     * @var int $once only enty once when it expired
      */
-    public $once = false;
+    public $once = 0;
 
     /**
      * @var int $expire set lock expire time
