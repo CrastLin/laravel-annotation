@@ -43,7 +43,7 @@ class SyncLockMiddleware
                     endforeach;
                     $key .= ':' . md5($suffixKey);
                 }
-                $redis = Redis::connection();
+                $redis = Redis::connection()->client();
                 if (!$redis->set($key, 1, 'ex', $annotation['expire'] ?? 86400, 'nx'))
                     return response()->json($annotation['respone'] ?? ['code' => $annotation['code'] ?? 500, 'msg' => $annotation['msg'] ?? 'Request busy, please try again later'])->header('Pragma', 'no-cache')
                         ->header('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
