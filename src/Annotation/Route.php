@@ -53,6 +53,8 @@ class Route extends Node
         ],
     ];
 
+    protected $defaultValueField = 'url';
+
     /**
      * @var array $rootGroup
      */
@@ -196,17 +198,18 @@ class Route extends Node
                 $group->matchClassAnnotate();
 
                 // create controller sync lock
-                $lockAnnotation = new SyncLock($class);
-
                 $classStringList = explode('\\', $class);
                 $classShoreName = join('\\', array_slice($classStringList, 3));
                 $lastModifyTimeList[$classShoreName] = $mtime;
-                $lockAnnotation->matchAllMethodAnnotation(function (array $annotation, ReflectionMethod $method) use ($classShoreName, &$lockAnnotationSet) {
-                    $action = "{$classShoreName}@{$method->name}";
-                    if (empty($annotation['response']) && !empty(self::$config['lock']['response']))
-                        $annotation['response'] = self::$config['lock']['response'];
-                    $lockAnnotationSet[$action] = $annotation;
-                });
+                $lockAnnotationList = [new SyncLock($class), new SyncLockByToken($class)];
+                foreach ($lockAnnotationList as $lockAnnotation):
+                    $lockAnnotation->matchAllMethodAnnotation(function (array $annotation, ReflectionMethod $method) use ($classShoreName, &$lockAnnotationSet) {
+                        $action = "{$classShoreName}@{$method->name}";
+                        if (empty($annotation['response']) && !empty(self::$config['lock']['response']))
+                            $annotation['response'] = self::$config['lock']['response'];
+                        $lockAnnotationSet[$action] = $annotation;
+                    });
+                endforeach;
                 // create route annotate object
                 $route = new Route($class);
                 $route->setRootGroup($rootGroup)->matchAllMethodAnnotation(function (ReflectionMethod $method) use ($route, $group, &$routeAnnotationList) {

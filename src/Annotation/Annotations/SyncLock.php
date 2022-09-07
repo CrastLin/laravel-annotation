@@ -47,7 +47,7 @@ class SyncLock
     public $once = 0;
 
     /**
-     * @var int $expire set lock expire time
+     * @var int $expire set lock expire time, it's default value set, when using: @SyncLock(86400)
      */
     public $expire = 86400;
 

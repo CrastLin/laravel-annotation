@@ -19,76 +19,80 @@ use ReflectionProperty;
 abstract class Annotation implements AnnotationInterface
 {
     /**
-     * @var ReflectionClass $reflection 类反射对象
+     * @var ReflectionClass $reflection Class reflection object
      */
     protected $reflection;
     /**
-     * @var ReflectionMethod $method 方法反射对象
+     * @var ReflectionMethod $method Method reflection object
      */
     protected $method;
     /**
-     * @var ReflectionProperty $property 属性反射对象
+     * @var ReflectionProperty $property Property reflection object
      */
     protected $property;
 
-    // 注解在类上
+    // Annotation on class
     const ELEMENT_TYPE = 'class';
-    // 注解在属性上
+    // Annotation on property
     const ELEMENT_PROPERTY = 'property';
-    // 注解在方法上
+    // Annotation on method
     const ELEMENT_METHOD = 'method';
 
     protected
         /**
-         * @var bool $isCli 是否命令行模式
+         * @var bool $isCli Command line mode
          */
         $isCli = false,
         /**
-         * @var array $annotationTypeList 允许注解位置
+         * @var array $annotationTypeList Allowed annotation location
          */
         $target,
         /**
-         * @var string $pattern 通用匹配规则模板
+         * @var string $pattern General matching rule template
          */
         $pattern = '#@({annotateName})\s*(\(\s*(.*)\))?#i',
         /**
-         * @var string $annotateName 注解名
+         * @var string $annotateName Annotation name
          */
         $annotateName,
         /**
-         * @var array $annotateNameTypeBatchSet 批量匹配类注解规则设置
+         * @var array $annotateNameTypeBatchSet Batch matching class annotation rule settings
          */
         $annotateNameTypeBatchSet,
         /**
-         * @var array $annotateNamePropertyBatchSet 批量匹配属性注解规则设置
+         * @var array $annotateNamePropertyBatchSet Batch matching attribute annotation rule settings
          */
         $annotateNamePropertyBatchSet,
         /**
-         * @var array $annotateNameMethodBatchSet 批量匹配方法注解规则设置
+         * @var array $annotateNameMethodBatchSet Batch matching method annotation rule settings
          */
         $annotateNameMethodBatchSet,
         /**
-         * @var array $matchAnnotateType 匹配到的类注解名
+         * @var array $matchAnnotateType Matched class annotation name
          */
         $matchTypeAnnotateName,
         /**
-         * @var array matchPropertyAnnotateName 匹配到的属性注解名
+         * @var array $matchPropertyAnnotateName Matched attribute annotation name
          */
         $matchPropertyAnnotateName,
         /**
-         * @var array matchMethodAnnotateName 匹配到的方法注解名
+         * @var array matchMethodAnnotateName Matched method annotation name
          */
         $matchMethodAnnotateName,
         /**
-         * @var array $classAnnotate 注解解析数据
+         * @var array $classAnnotate Annotation parsing data
          */
         $classAnnotate,
         /**
-         * @var string[] $defaultFields 属性默认值，没有设置值时，自动匹配
+         * @var string[] $defaultFields Property default value. If no value is set, it will match automatically
          */
         $defaultFields,
         /**
-         * @var string[] $ignoreMethodList 忽略的公共方法
+         * @var string $defaultValueField Missing attribute annotation by default
+         */
+        $defaultValueField = 'value',
+        /**
+         * @var string[] $ignoreMethodList Ignored public method
          */
         $ignoreMethodList = ['__construct', '__destruct', 'callAction', 'middleware', 'getMiddleware', '__call', 'authorize', 'authorizeForUser', 'authorizeResource', 'dispatchNow', 'validateWith', 'validate', 'validateWithBag'],
         $ignorePropertyList;
@@ -148,16 +152,16 @@ abstract class Annotation implements AnnotationInterface
     {
         if (empty($annotate))
             return [];
-        // json参数格式：({"name": "value", "array": ["value1", "value2"], "object": {"name": "value1", "name2": "value2"}})
+        // parameter as json format：({"name": "value", "array": ["value1", "value2"], "object": {"name": "value1", "name2": "value2"}})
         if (preg_match('#^\s*((\{.*\})|(\[.*\]))$#', $annotate, $matches)) {
             $annotateJson = json_decode(trim($annotate), true);
             if (!is_null($annotateJson))
                 return $annotateJson;
         }
-        // java注解参数格式：({value = "", value2 = xxx})
+        // parameter as map format：({value = "", value2 = xxx})
         if (preg_match('#^\s*\{(.*)\}\s*$#', $annotate, $matches))
             $annotate = $matches[1];
-        // 默认格式 (xxx=yyy, zzz=mmm)
+        // default format (xxx=yyy, zzz=mmm)
         $annotate = str_replace(['"', '\''], '', $annotate);
         $annotateSet = [];
         if (strpos($annotate, ',') === false) {
@@ -196,8 +200,8 @@ abstract class Annotation implements AnnotationInterface
 
     /**
      * match all method annotation
-     * @param callable|null $callable 回调方法
-     * @param int $classAccess 类的访问权限类型，在ReflectionMethod获取
+     * @param callable|null $callable
+     * @param int $classAccess
      * @return array
      */
     function matchAllMethodAnnotation(?callable $callable = null, int $classAccess = ReflectionMethod::IS_PUBLIC)
@@ -226,8 +230,8 @@ abstract class Annotation implements AnnotationInterface
 
     /**
      * match all property annotation
-     * @param callable|null $callable 回调方法
-     * @param int $classAccess 类的访问权限类型，在ReflectionProperty获取
+     * @param callable|null $callable
+     * @param int $classAccess
      * @return array
      */
     function matchAllPropertyAnnotation(?callable $callable = null, int $classAccess = \ReflectionProperty::IS_PUBLIC)

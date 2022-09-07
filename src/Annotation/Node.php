@@ -49,6 +49,12 @@ class Node extends Annotation
          * @var int $saveMode
          */
         $saveMode,
+
+        /**
+         * @var string $defaultValueField
+         */
+        $defaultValueField = 'name',
+
         /**
          * @var string[] $defaultFields 属性默认值，没有设置值时，自动匹配
          */
@@ -158,6 +164,8 @@ class Node extends Annotation
 
         // 获取方法注解
         $methodAnnotate = $this->matchMethodAnnotate();
+        $this->classAnnotate['name'] = $this->classAnnotate['name'] ?? ($this->classAnnotate['value'] ?? '');
+        $methodAnnotate['name'] = $methodAnnotate['name'] ?? ($methodAnnotate['value'] ?? '');
         if (!empty($this->classAnnotate['actions'])) {
             $actions = explode(',', $this->classAnnotate['actions']);
             if (in_array($this->action, $actions) || $this->action == 'defaultPage')

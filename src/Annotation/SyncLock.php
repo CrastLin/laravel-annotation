@@ -15,7 +15,7 @@ use ReflectionMethod;
  *
  * name: the lock name, a string put
  *
- * suffix: the suffix of the lock name, a string put, Support request parameter variables, using suffix as '$var' corresponding request parameter 'var', If you need to specify the request parameter type, please configure the request method, using as :  suffix="get.$id" or suffix="header.$id", default is input(include all methods)
+ * suffix: the suffix of the lock name, a string put, Support request parameter variables, using suffix as '$var' corresponding request parameter 'var', If you need to specify the request parameter type, please configure the request method, using as :  suffix="get.$id" or suffix="header.$id", default is input
  *
  * suffixes many of suffix as a array
  *
@@ -30,6 +30,7 @@ class SyncLock extends Annotation
 
     protected $attributes = 'response|suffixes';
 
+    protected $defaultValueField = 'expire';
 
     /**
      * parse node information from annotate
@@ -72,6 +73,16 @@ class SyncLock extends Annotation
         $classes = explode('\\', $class);
         $classes = array_slice($classes, -2);
         $shortName = $classes[0] . '_' . str_replace('Controller', '', $classes[1]);
+        $classes = explode('\\', static::class);
+        $annotationClass = array_pop($classes);
+        $annotationReflect = new \ReflectionClass(__NAMESPACE__ . '\\Annotations\\' . $annotationClass);
+
+        $annotationInstance = $annotationReflect->newInstance();
+        $defaultBody = '';
+        $defaultToken = '';
+        if ($annotationInstance instanceof \Crastlin\LaravelAnnotation\Annotation\Annotations\SyncLockByToken)
+            list($defaultBody, $defaultToken) = [$annotationInstance->body, $annotationInstance->token];
+
         foreach ($methods as $method):
             if (!empty($this->ignoreMethodList) && in_array($method->getName(), $this->ignoreMethodList))
                 continue;
@@ -79,15 +90,20 @@ class SyncLock extends Annotation
             if (empty($annotation))
                 continue;
             $annotation['action'] = $method->name;
+            $annotation[$this->defaultValueField] = $annotation[$this->defaultValueField] ?? ($annotation['value'] ?? $annotationInstance->{$this->defaultValueField});
+            list($defaultBody, $defaultToken) = [
+                !empty($annotation['body']) ? $annotation['body'] : $defaultBody,
+                !empty($annotation['token']) ? $annotation['token'] : $defaultToken,
+            ];
             list($annotation['name'], $annotation['prefix'], $annotation['suffix'], $annotation['suffixes'], $annotation['expire'], $annotation['once'], $annotation['response']) = [
                 strtolower($shortName . '_' . (!empty($annotation['name']) ? $annotation['name'] : $method->name)),
                 !empty($annotation['prefix']) ? rtrim($annotation['prefix'], '_') . '_' : 'sync_lock_annotation_',
-                !empty($annotation['suffix']) && is_string($annotation['suffix']) ? ltrim($annotation['suffix'], ':') : '',
+                !empty($annotation['suffix']) && is_string($annotation['suffix']) ? ltrim($annotation['suffix'], ':') : (!empty($defaultBody) && !empty($defaultToken) ? $defaultBody . '.$' . $defaultToken : ''),
                 !empty($annotation['suffixes']) && is_array($annotation['suffixes']) ? array_map(function ($value) {
                     return preg_replace('~\"([\w\$\.]+)\"~', '$1', $value);
                 }, $annotation['suffixes']) : [],
 
-                !empty($annotation['expire']) && is_numeric($annotation['expire']) && $annotation['expire'] > 0 ? (int)$annotation['expire'] : 3600,
+                !empty($annotation['expire']) && is_numeric($annotation['expire']) && $annotation['expire'] > 0 ? (int)$annotation['expire'] : 86400,
                 !empty($annotation['once']) && $annotation['once'] != 'false' ? 1 : 0,
                 !empty($annotation['response']) ? $annotation['response'] : (isset($annotation['code']) ? ['code' => (int)$annotation['code'], 'msg' => $annotation['msg'] ?? ''] : []),
             ];
