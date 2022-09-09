@@ -11,17 +11,17 @@ use ReflectionMethod;
  * @date 2022-08-30
  * @example: (annotation parameters example: key=value, key2=value2,...)
  * @description:
- * prefix: the prefix of the lock name, a string put
+ * [prefix] the prefix of the lock name, a string put
  *
- * name: the lock name, a string put
+ * [name] the lock name, a string put
  *
- * suffix: the suffix of the lock name, a string put, Support request parameter variables, using suffix as '$var' corresponding request parameter 'var', If you need to specify the request parameter type, please configure the request method, using as :  suffix="get.$id" or suffix="header.$id", default is input
+ * [suffix] the suffix of the lock name, a string put, Support request parameter variables, using suffix as '$var' corresponding request parameter 'var', If you need to specify the request parameter type, please configure the request method, using as :  suffix="get.$id" or suffix="header.$id", default is input
  *
- * suffixes many of suffix as a array
+ * [suffixes] many of suffix as an array
  *
- * expire: the lock's expire time unit: second, default 3600s
+ * [expire] the lock's expire time unit: second, default 3600s
  *
- * once: unlock when the lock was expired
+ * [once] unlock when the lock was expired
  */
 class SyncLock extends Annotation
 {

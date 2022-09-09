@@ -47,11 +47,25 @@ return [
     'auto_create_node' => env('ANNOTATION_AUTO_CRATE_NODE', false),
 
     /*
-     | 分布式锁配置
-     | DSC lock config
+     | 拦截器配置
+     | interceptor config
+     | Including all annotation configurations related to interception
      */
-    'lock' => [
-        'response' => [],
+    'interceptor' => [
+        // Distributed lock configuration
+        'lock' => [
+            // lock switch, on by default
+            'case' => true,
+            // Data of response when intercepted
+            'response' => [],
+            // Lock status validity period setting
+            'expire' => 86400,
+        ],
+        // Parameter input verifier configuration
+        'validate' => [
+            // validator switch, on by default
+            'case' => true,
+        ],
     ],
 
 ];

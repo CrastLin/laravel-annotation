@@ -20,7 +20,8 @@
     }
   ],
   "require": {
-    "php": ">=7.1.0"
+    "php": ">=7.1.0",
+    "ext-json": "*"
   },
   "extra": {
     "laravel": {
