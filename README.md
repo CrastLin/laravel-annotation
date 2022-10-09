@@ -362,7 +362,7 @@ php artisan annotation:node {module?}
  {
     protected $middleware = [
        // ...
-       Crastlin\LaravelAnnotation\Middleware\SyncLockMiddleware::class,
+       Crastlin\LaravelAnnotation\Middleware\InterceptorMiddleware::class,
     ];
  }
 ````
