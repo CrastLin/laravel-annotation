@@ -10,8 +10,8 @@ laravel-annotation 是基于PHP反射机制，将注解标记解析成功功能�
 
 #### 安装教程
 
-1. composer require crastlin/laravel-annotation:v2.0.3beta 安装
-2. 或在composer.json中的require添加 "crastlin/laravel-annotation":"^v2.0.3beta"
+1. composer require crastlin/laravel-annotation:v2.0.4beta 安装
+2. 或在composer.json中的require添加 "crastlin/laravel-annotation":"^v2.0.4beta"
 
 #### 使用说明
 
@@ -406,6 +406,236 @@ php artisan annotation:node {module?}
  }
 ````
 * 以上的效果是同一的id请求会限制并发
+
+5. ##### 数据依赖注入注解 (2023-12 新增，需要使用: composer require crastlin/laravel-annotation:v2.0.4beta)
+* 在项目开发中，经常需要往service或logic层传递数据，通常做法是使用setter，但多个对象setter时，会让代码过于冗余，且有可能会缺少某个setter而导致程序无法正常运行。
+> 5.1 使用前需要对数据进行绑定，以下例子，在中间件绑定请求参数：
+
+````php
+ namespace App\Http\Middleware;
+ use Crastlin\LaravelAnnotation\Facades\Injection;use \Illuminate\Http\Request;
+ class AuthorizeCheck
+ {
+    function handle(Request $request)
+    {
+       $parameters = $request->getContent();
+       // todo something
+       // ...
+       // 绑定数据到依赖类容器
+       Injection::bind('parameters', $parameters);
+       
+       // 绑定用户
+       try{
+        $user = User::find($parameters['uid']);
+        Injection::bind('user', $user);
+       }catch (\Throwable $throwable){
+         var_dump("用户不存在");
+       }
+    }
+ }
+````
+* 在控制器中依赖注入例子
+
+````php
+
+// 基类配置注入方法
+
+namespace Illuminate\Routing\Controller;
+use Crastlin\LaravelAnnotation\Facades\Injection;
+use Crastlin\LaravelAnnotation\Annotation\Annotations\Inject
+use Crastlin\LaravelAnnotation\Annotation\Annotations\PostMapping
+
+abstract class BaseController extends Controller
+{
+   // 通用注入属性方法
+    function setProperty(string $name, $value)
+    {
+        if (property_exists($this, $name))
+            $this->{$name} = $value;
+    }
+    
+    // 重写callAction
+    public function callAction($method, $parameters)
+    {
+        $input = Input::toArray();
+        // 解析当前控制器对象属性注解，并自动注入
+        Injection::injectWithObject($this);
+        // call controller action
+        return call_user_func_array([$this, $method], $parameters);
+    }
+}
+
+// 实现控制器类中使用注解自动注入
+class IndexController extends BaseController
+{
+
+  // 在以下属性增加Inject注解
+  /**
+   * @var array $parameters
+   * @Inject 
+   */
+  protected $parameters;
+
+  /**
+   * @PostMapping
+   */
+  function index()
+  {
+     // 当前访问index方法时，可以直接访问注入的属性
+     var_dump($this->parameters);
+     // 使用take方法直接取值
+     $user = Injection::take('user');
+     var_dump($user);
+     // 使用exists判断容器是否绑定对象
+     $exists = Injection::exists('user');
+     var_dump($exists);
+  }
+}
+````
+> 5.2 使用别名注入
+````php
+
+class IndexController extends BaseController
+{
+
+  // 在以下属性增加Inject注解
+  /**
+   * @var array $data
+   * @Inject(name="parameters")
+   */
+  protected $data;
+
+  /**
+   * @PostMapping
+   */
+  function index()
+  {
+     // 当前访问index方法时，可以直接访问注入的属性
+     var_dump($this->parameters);
+  }
+}
+
+````
+
+> 5.3 使用前缀注入
+````php
+
+// 在中间件中绑定带前缀的数据或对象
+ namespace App\Http\Middleware;
+ use Crastlin\LaravelAnnotation\Facades\Injection;use \Illuminate\Http\Request;
+ class AuthorizeCheck
+ {
+    function handle(Request $request)
+    {
+       $parameters = $request->getContent();
+       // todo something
+       // ...
+       // 绑定数据到依赖类容器
+       Injection::bind('common.parameters', $parameters);
+    }
+ }
+
+// 注入注解增加对应的配置
+class IndexController extends BaseController
+{
+
+  // 在以下属性增加Inject注解
+  /**
+   * @var array $data
+   * @Inject(name="common.parameters")
+   * 或者配置prefix
+   * @Inject(name="parameters", prefix="common")
+   */
+  protected $data;
+
+  /**
+   * @PostMapping
+   */
+  function index()
+  {
+     // 当前访问index方法时，可以直接访问注入的属性
+     var_dump($this->parameters);
+  }
+}
+````
+
+> 5.4 使用单例方法：SingletonTrait 自动注入
+````php
+
+namespace App\Service;
+use Crastlin\LaravelAnnotation\Utils\Traits\SingletonTrait;
+
+class BusinessService
+{
+  use SingletonTrait;
+  /**
+   * @var array $data
+   * @Inject(name="common.parameters")
+   */
+  protected $data;
+  
+  function profile()
+  {
+     var_dump($this->data);
+  }
+  
+}
+
+// 实例化BusinessService对象
+// 注入注解增加对应的配置
+namespace App\Http\Controllers\Api;
+use App\Service\BusinessService;
+
+class IndexController extends BaseController
+{
+ 
+  /**
+   * @PostMapping
+   */
+  function index()
+  {
+     $service = BusinessService::singleton();
+     $service->profile();
+  }
+}
+
+````
+
+>5.5 依赖注入的优先级是：setter方法 -> setProperty方法 -> 直接赋值
+
+````php
+
+namespace App\Service;
+use Crastlin\LaravelAnnotation\Utils\Traits\SingletonTrait;
+
+class BusinessService
+{
+  use SingletonTrait;
+  /**
+   * @var array $data
+   */
+  protected $data;
+  
+  
+  // 使用set + 属性名（小驼峰命名规则）
+  function setData(?array $data)
+  {
+    // todo something
+    $this->data = $data;
+  }
+  
+  function profile()
+  {
+     var_dump($this->data);
+  }
+  
+}
+
+
+````
+
+* 注意：使用赋值的方式注入时，须要属性为pubic 或者 增加魔术方法 __set()
+
 
  #### 代码贡献
  * crastlin@163.com

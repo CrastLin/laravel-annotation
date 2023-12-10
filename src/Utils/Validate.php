@@ -3,7 +3,10 @@
 
 namespace Crastlin\LaravelAnnotation\Utils;
 
+
+use Crastlin\LaravelAnnotation\Utils\Traits\SingletonTrait;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Validator as Validation;
 use Throwable;
 
 /**
@@ -14,6 +17,12 @@ use Throwable;
  */
 class Validate implements \Illuminate\Contracts\Validation\Validator
 {
+    use SingletonTrait;
+
+    /**
+     * @var string[] 允许访问的对象
+     */
+    protected $allowAccessProperties = ['*'];
 
     protected $data = [], $rules = [],
         $messages = [
@@ -25,11 +34,25 @@ class Validate implements \Illuminate\Contracts\Validation\Validator
         'email' => '邮箱格式不正确',
         'callback' => ':attribute为空或不正确',
         'integer' => ':attribute必须为整数',
+        'digits_between' => ':attribute 必须在 :min 和 :max 位之间',
+        'between' => ':attribute不在允许范围',
+        'mix' => ':attribute最小值为:value',
+        'max' => ':attribute最大值为:value',
+        'gt' => ':attribute必须大于:value',
+        'lt' => ':attribute必须小于:value',
+        'gte' => ':attribute必须大于等于:value',
+        'lte' => ':attribute必须小于等于:value',
+        'chs' => ':attribute必须为中文',
     ],
         $attributes = [],
         $fails = false,
-        $errors,
-        $callbackMessage;
+        $errors;
+
+    /**
+     * @var Validation $validator
+     */
+    protected $validator;
+
 
     /**
      * Validate constructor.
@@ -39,7 +62,9 @@ class Validate implements \Illuminate\Contracts\Validation\Validator
     function __construct(array ...$ruleList)
     {
         if (!empty($ruleList)) {
-            list($rules, $messages, $attributes) = $ruleList;
+            $rules = $ruleList[0] ?? [];
+            $messages = $ruleList[1] ?? [];
+            $attributes = $ruleList[2] ?? [];
             $this->rules = !empty($rules) ? array_merge($this->rules, $rules) : $this->rules;
             $this->messages = !empty($messages) ? array_merge($this->messages, $messages) : $this->messages;
             $this->attributes = !empty($attributes) ? array_merge($this->attributes, $attributes) : $this->attributes;
@@ -48,16 +73,43 @@ class Validate implements \Illuminate\Contracts\Validation\Validator
     }
 
 
+    function __get(string $name)
+    {
+        if (!empty($this->allowAccessProperties) && (in_array('*', $this->allowAccessProperties) || in_array($name, $this->allowAccessProperties)))
+            return !empty($this->{$name}) ? $this->{$name} : null;
+
+        return null;
+    }
+
+    function __isset($name)
+    {
+        if (!empty($this->allowAccessProperties) && (in_array('*', $this->allowAccessProperties) || in_array($name, $this->allowAccessProperties)))
+            return isset($this->{$name});
+        return false;
+    }
+
     /**
      * set validator's messages
      *
      * @param array $message
      * @param bool $recover
      */
-    function setMessage(array $message, $recover = false)
+    function setMessage(array $message, bool $recover = false)
     {
         if (!empty($message))
             $this->messages = $recover ? $message : array_merge($this->messages, $message);
+    }
+
+    function setCallbackMessage(string $field, string $message): void
+    {
+        $this->validator->setFallbackMessages(["{$field}.callback" => $message]);
+    }
+
+    function append(string $field, $rule, string $attribute, array $message = [])
+    {
+        $this->rules = array_merge($this->rules, [$field => $rule]);
+        $this->attributes[$field] = $attribute;
+        $this->setMessage($message);
     }
 
     /**
@@ -87,9 +139,11 @@ class Validate implements \Illuminate\Contracts\Validation\Validator
      * @example 报错信息可以在message中定义 callback或 {验证字段名}.callback指定，或在方法中定义$this->callbackMessage
      * @example 验证规则例子  protected $rules = ['example_field' => 'callback:checkExample|...其它验证'];
      * @example 错误信息例子  protected $messages = ['callback' => ':attribute验证不通过'];// 通用错误信息
-     * @example 错误信息例子2 protected $messages = ['example_field.callback' => 'example 验证不通过'];// 通用错误信息
+     * @example 错误信息例子2 protected $messages = ['example_field.callback' => 'example 验证不通过'];// 指定字段错误信息
      * @example 自定义方法例子
-     * protected function checkExample(): bool
+     * // param $field 字段名称
+     * // param $value 验证的数据
+     * protected function checkExample(string $field, $value): bool
      * {
      *     if(!isset($this->data['checkExample']) || ... 其它验证){
      *        $this->callbackMessage = 'xxx验证不通过'; // 在方法中定义错误信息，如果定义了这个信息，则 $this->messages中可以不再定义
@@ -100,52 +154,42 @@ class Validate implements \Illuminate\Contracts\Validation\Validator
      */
     function validate()
     {
-        // 验证自定义回调验证
-        foreach ($this->rules as $field => $rule):
-            if (is_string($rule) && strpos($rule, 'callback') === false)
-                continue;
-            $format = is_array($rule) ? 'array' : 'string';
-            $ruleList = $format == 'array' ? $rule : explode('|', $rule);
-            foreach ($ruleList as $key => $ru):
-                if (strpos($ru, 'callback') === false)
-                    continue;
-                $ruList = explode(':', $ru);
-                $result = true;
-                if (!empty($ruList[0]) && $ruList[0] == 'callback') {
-                    if (empty($ruList[1]) || !method_exists($this, $ruList[1]))
-                        throw new \Exception(static::class . '::' . $ruList[1] . ' is not defined');
-                    $result = call_user_func_array([$this, $ruList[1]], [$field]);
-                    unset($ruleList[$key]);
-                    if (isset($this->messages["{$field}.callback"]))
-                        unset($this->messages["{$field}.callback"]);
-                }
-                if (!$result) {
-                    $this->fails = true;
-                    $name = $this->attributes[$field] ?? $field;
-                    $message = $this->callbackMessage ?: ($this->messages["{$field}.callback"] ?? ($this->messages['callback'] ?? 'is not passed'));
-                    $message = str_replace(':attribute', $name, $message);
-                    $this->errors[] = $message;
-                    return $this;
-                }
-                $this->callbackMessage = '';
-            endforeach;
-            $this->rules[$field] = $format == 'array' ? $ruleList : join('|', $ruleList);
-        endforeach;
-        return Validator::make($this->data, $this->rules, $this->messages, $this->attributes);
+        Validator::extend('callback', function (string $attribute, $value, array $parameters) {
+            $action = array_shift($parameters);
+            array_unshift($parameters, $value, $attribute);
+            return call_user_func_array([$this, $action], $parameters);
+        }, ':attribute验证失败');
+        $this->validator = Validator::make($this->data, $this->rules, $this->messages, $this->attributes);
+        return $this->validator;
     }
 
 
     /**
      * make validate instance
      * @param string $ruleClass
-     * @param array $data
+     * @param ?array $data
+     * @param Validate $validate
      * @return \Illuminate\Contracts\Validation\Validator
      * @throws Throwable
      */
-    static function make(string $ruleClass, ?array $data): \Illuminate\Contracts\Validation\Validator
+    static function make(string $ruleClass, ?array $data, &$validate = null): \Illuminate\Contracts\Validation\Validator
     {
-        return self::singleton($ruleClass)->setData($data)->validate();
+        $validate = self::singleton($ruleClass)->setData($data);
+        return $validate->validate();
     }
+
+    /**
+     * make validate instance
+     * @param Validate $validator
+     * @param ?array $data
+     * @return \Illuminate\Contracts\Validation\Validator
+     * @throws Throwable
+     */
+    static function makeByValidator(Validate $validator, ?array $data): \Illuminate\Contracts\Validation\Validator
+    {
+        return $validator->setData($data)->validate();
+    }
+
 
     public function getMessageBag()
     {
@@ -185,5 +229,45 @@ class Validate implements \Illuminate\Contracts\Validation\Validator
     function first()
     {
         return $this->errors[0] ?? '';
+    }
+
+    protected function checkNumericWithLenRegex(int $min = 0, int $max = 0, bool $isPositive = false): string
+    {
+        $lenRex = '';
+        if ($min > 0)
+            $lenRex = "{$min},";
+        if ($min > 0 && $max > $min)
+            $lenRex .= "{$max}";
+        if (!empty($lenRex))
+            $lenRex = '{' . $lenRex . '}';
+        else
+            $lenRex = '+';
+        $positiveRex = $isPositive ? '(-)?' : '';
+        return '~^' . $positiveRex . '\d' . $lenRex . '$~';
+    }
+
+    // 当字段存在时验证整数类型
+    protected function checkIntegerWhenExists(...$parameters): bool
+    {
+        list($value, $field) = $parameters;
+        if (!isset($this->data[$field]) || empty($value))
+            return true;
+        $regex = $this->checkNumericWithLenRegex(!empty($parameters[2]) ? (int)$parameters[2] : 0, !empty($parameters[3]) ? (int)$parameters[3] : 0);
+        if (!preg_match($regex, $value))
+            return false;
+
+        return true;
+    }
+
+    // 当字段存在时验证正整数类型
+    protected function checkPositiveIntegerWhenExists(...$parameters): bool
+    {
+        list($value, $field) = $parameters;
+        if (!isset($this->data[$field]) || empty($value))
+            return true;
+        $regex = $this->checkNumericWithLenRegex(!empty($parameters[2]) ? (int)$parameters[2] : 0, !empty($parameters[3]) ? (int)$parameters[3] : 0, true);
+        if (!preg_match($regex, $value))
+            return false;
+        return true;
     }
 }

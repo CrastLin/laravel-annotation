@@ -2,6 +2,7 @@
 
 namespace Crastlin\LaravelAnnotation;
 
+use Crastlin\LaravelAnnotation\Annotation\Injection;
 use Crastlin\LaravelAnnotation\Annotation\Route;
 use Illuminate\Cache\RedisLock;
 use Illuminate\Support\Facades\Log;
@@ -49,6 +50,9 @@ class AnnotationProvider extends ServiceProvider
     public function register()
     {
         $this->setupConfig();
+        $this->app->singleton('injection', function(){
+            return new Injection();
+        });
     }
 
     /**
