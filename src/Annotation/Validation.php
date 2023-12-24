@@ -174,6 +174,11 @@ class Validation
         return $matchList;
     }
 
+    protected function humpToUnderline(string $string, ?bool $toUpper = false): string
+    {
+        $string = preg_replace('/(?<=[a-z0-9])([A-Z])/', '_${1}', $string);
+        return $toUpper ? strtoupper($string) : strtolower($string);
+    }
 
     // create validator
     function runValidation(string $class, string $action, array $data): string
@@ -186,28 +191,52 @@ class Validation
         if (empty($methodsCache['maps']) || !array_key_exists($action, $methodsCache['maps']))
             return '';
         if (!empty($methodsCache['maps'][$action])) {
+            $aliasSet = [
+                'is_array' => 'array',
+                'mobile' => 'regex:~^1\d{10}$~',
+                'mobile_international' => 'regex:~^(\+\d{2,3}-*)?1\d{10}$~',
+                'id_card' => 'regex:~^[0-9]{15,18}(X)?$~i',
+                'simple_chinese' => 'regex:~^[\x{4e00}-\x{9fa5}]+$~iu',
+            ];
+            $rules = $messages = $attributes = [];
             foreach ($methodsCache['maps'][$action] as $validator) {
                 if ($validator['validator'] == 'Validation') {
                     if (!empty($validator['class'])) {
                         $class = '\\' . $validator['class'];
                         if (!class_exists($validator['class']))
                             throw new Exception("Validation Class: {$class} is not exists");
-                        $validate = Validate::make($class, $data);
+                        $validate = new $class();
+                        if (!$validate instanceof Validate)
+                            throw new Exception("Validation Class: {$class} must instanceof \Crastlin\LaravelAnnotation\Utils\Validate");
+                        $validate = $validate->setData($data)->validate();
                         if ($validate->fails())
                             return $validate->errors()->first();
                         continue;
                     } else {
-                        $rules = [$validator['field'] => !empty($validator['rules']) ? $validator['rules'] : $validator['rule']];
-                        $messages = $validator['messages'];
+                        if (!isset($rules[$validator['field']]))
+                            $rules[$validator['field']] = [];
+                        if (!empty($validator['rules']))
+                            $rules[$validator['field']] = array_merge($rules[$validator['field']], $validator['rules']);
+                        else {
+                            $ruleList = !empty($validator['rule']) ? explode('|', $validator['rule']) : [];
+                            $rules[$validator['field']] = !empty($ruleList) ? array_merge($rules[$validator['field']], $ruleList) : $rules[$validator['field']];
+                        }
+                        $messages = !empty($validator['messages']) ? array_merge($messages, $validator['messages']) : $messages;
                     }
                 } else {
-                    $rule = strtolower($validator['validator']);
-                    $messages = [$rule => $validator['message']];
-                    $rules = [$validator['field'] => !empty($validator['rule']) && is_string($validator['rule']) ? "{$rule}:{$validator['rule']}" : $rule];
+                    $rule = $this->humpToUnderline($validator['validator']);
+                    $rule = $aliasSet[$rule] ?? $rule;
+                    if (!isset($rules[$validator['field']]))
+                        $rules[$validator['field']] = [];
+                    array_push($rules[$validator['field']], $rule);
+                    $messages[$rule] = $validator['message'];
                 }
-                $attributes = [
-                    $validator['field'] => $validator['attribute'],
-                ];
+                $attributes[$validator['field']] = !empty($validator['attribute']) ? $validator['attribute'] : $validator['field'];
+            }
+            if (!empty($rules)) {
+                $messages = array_filter($messages, function ($message) {
+                    return !empty($message);
+                });
                 $validate = new Validate($rules, $messages, $attributes);
                 $validate = $validate->setData($data)->validate();
                 if ($validate->fails())

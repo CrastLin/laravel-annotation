@@ -8,6 +8,6 @@ use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
  * @Annotation
  * @Target(Target::METHOD)
  */
-class Mobile extends Validation
+class MobileInternational extends Validation
 { 
 }
