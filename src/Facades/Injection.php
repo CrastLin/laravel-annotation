@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @package Inject
- * @mixin \App\Utils\Injection
+ * @mixin \Crastlin\LaravelAnnotation\Annotation\Injection
  * @remark 注入方法，使用bind方法，将需要注入的属性加：@Inject 注解
  * @method static void bind(string $name, $value)
  * @method static void offsetSet(string $name, $value)
@@ -33,6 +33,6 @@ class Injection extends Facade
      */
     protected static function getFacadeAccessor()
     {
-        return 'injection';
+        return 'crast.injection';
     }
 }

@@ -637,6 +637,7 @@ class BusinessService
 * 注意：使用赋值的方式注入时，须要属性为pubic 或者 增加魔术方法 __set()
 
 
+
  #### 代码贡献
  * crastlin@163.com
  

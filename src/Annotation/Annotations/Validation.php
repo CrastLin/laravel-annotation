@@ -15,20 +15,33 @@ class Validation
     public $class;
 
     /**
-     * @var string $name the attribute's name that to validating
+     * @var string $attribute the attribute name that to validating
      */
-    public $name;
+    public $attribute;
+
+    /**
+     * @var string $field the field of parameters
+     */
+    public $field;
 
     /**
      * @var string $rule the rule that to validating
      */
     public $rule;
 
+    /**
+     * @var string $rules json array example: ["required", "in:1,2"]
+     */
+    public $rules;
 
     /**
-     * @var string $msg message prompt of validation result error
+     * @var string $message prompt of validation result error
      */
-    public $msg;
+    public $message;
+    /**
+     * @var string $messages json object message prompt of validation result error
+     */
+    public $messages;
 
 
     /**

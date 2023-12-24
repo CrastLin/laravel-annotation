@@ -65,6 +65,8 @@ return [
         'validate' => [
             // validator switch, on by default
             'case' => true,
+            // User defined validator's namespace
+            'namespace' => 'App\Validator',
         ],
     ],
 

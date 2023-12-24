@@ -4,6 +4,7 @@ namespace Crastlin\LaravelAnnotation;
 
 use Crastlin\LaravelAnnotation\Annotation\Injection;
 use Crastlin\LaravelAnnotation\Annotation\Route;
+use Crastlin\LaravelAnnotation\Annotation\Validation;
 use Illuminate\Cache\RedisLock;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
@@ -50,8 +51,11 @@ class AnnotationProvider extends ServiceProvider
     public function register()
     {
         $this->setupConfig();
-        $this->app->singleton('injection', function(){
+        $this->app->singleton('crast.injection', function () {
             return new Injection();
+        });
+        $this->app->singleton('crast.validation', function () {
+            return new Validation(config('annotation'));
         });
     }
 
@@ -88,7 +92,7 @@ class AnnotationProvider extends ServiceProvider
                         if ($distributedLock->acquire()) {
                             $moduleBasePath = !empty($config['controller_base']) ? rtrim($config['controller_base'], '/') : 'app/Http/Controllers';
                             $moduleBasePath = base_path($moduleBasePath);
-                            \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping($config['modules'], $moduleBasePath, $namespace, $routeBasePath, $config['root_group'] ?? [], $config);
+                            \Crastlin\LaravelAnnotation\Annotation\Route::autoBuildRouteMapping($config['modules'], $moduleBasePath, $namespace, $routeBasePath, $config['root_group'] ?? [], $config, $path);
 
                             $distributedLock->release();
                         }

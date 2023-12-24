@@ -288,15 +288,26 @@ abstract class Annotation implements AnnotationInterface
      * @param string $pattern
      * @return array
      */
-    protected function matchMethodAnnotate(ReflectionMethod $method = null, string $pattern = ''): ?array
+    protected function matchMethodAnnotate(ReflectionMethod $method = null, bool $isMatchAll = false, string $pattern = ''): ?array
     {
         $pattern = $pattern ?: $this->pattern;
         if (in_array(self::ELEMENT_METHOD, $this->target)) {
             $method = $method ?: $this->method;
             $methodComment = $method->getDocComment();
-            preg_match($pattern, $methodComment, $matches);
-            $this->matchMethodAnnotateName = $matches[1] ?? '';
-            return !isset($matches[1]) ? null : $this->parseAnnotate($matches[3] ?? '');
+            if ($isMatchAll) {
+                preg_match_all($pattern, $methodComment, $matches);
+                if (empty($matches[2]))
+                    return null;
+                $matchAnnotationList = [];
+                foreach ($matches[2] as $match) {
+                    $matchAnnotationList[] = $this->parseAnnotate($match);
+                }
+                return $matchAnnotationList;
+            } else {
+                preg_match($pattern, $methodComment, $matches);
+                $this->matchMethodAnnotateName = $matches[1] ?? '';
+                return !isset($matches[1]) ? null : $this->parseAnnotate($matches[3] ?? '');
+            }
         }
         return null;
     }

@@ -5,6 +5,7 @@ namespace Crastlin\LaravelAnnotation\Annotation;
 
 
 use ReflectionMethod;
+use Crastlin\LaravelAnnotation\Facades\Injection;
 use Throwable;
 
 /**
@@ -138,6 +139,7 @@ class Route extends Node
             foreach ($mapRecords[$path] as $cs => $map):
                 if (strpos($cs, '-') === false)
                     break;
+                Injection::exists('crast.route_map') || Injection::bind('crast.route_map', $map);
                 list($minCount, $maxCount) = explode('-', $cs);
                 if ($varCount > 0 && ($varCount < $minCount || $varCount > $maxCount))
                     continue;
@@ -420,7 +422,7 @@ class Route extends Node
      * @param callable|null $callback
      * @throws Throwable
      */
-    static function autoBuildRouteMapping(array $moduleList, string $moduleBasePath, string $namespaceBase, string $routeBasePath, ?array $rootGroup = null, array $annotationConfig = [])
+    static function autoBuildRouteMapping(array $moduleList, string $moduleBasePath, string $namespaceBase, string $routeBasePath, ?array $rootGroup = null, array $annotationConfig = [], string $path = '')
     {
         self::$routeGlobalMap = [];
         $modulePathMapping = [];
@@ -456,6 +458,13 @@ class Route extends Node
             endforeach;
             if (!empty(self::$routeGlobalMap)) {
                 file_put_contents("{$routeBasePath}/map.php", "<?php\r\nreturn " . var_export(self::$routeGlobalMap, true) . ";");
+                // 绑定当前路由配置
+                if (!empty($path) && !Injection::exists('crast.route_map')) {
+                    $map = array_key_exists($path, self::$routeGlobalMap) ? self::$routeGlobalMap[$path] : [];
+                    $sub = array_values($map);
+                    if (!empty($sub[0]['name']))
+                        Injection::bind('crast.route_map', $sub[0]);
+                }
                 self::$routeGlobalMap = null;
             }
             if (!empty(self::$anotherAnnotationGlobalMap)) {

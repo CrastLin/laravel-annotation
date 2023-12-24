@@ -101,7 +101,7 @@ class Injection
     protected function getInjectInformation(\ReflectionClass $reflect): array
     {
         $conf = config('annotation');
-        $rootPath = $conf && !empty($conf['annotation_path'])?$conf['annotation_path'] : 'data/';
+        $rootPath = $conf && !empty($conf['annotation_path']) ? $conf['annotation_path'] : 'data/';
         $rootPath = base_path("{$rootPath}inject/");
         $class = $reflect->getName();
         $classFile = $reflect->getFileName();
@@ -117,22 +117,22 @@ class Injection
             $redis = Redis::connection();
             $locker = new RedisLock($redis, "sync_inject_config:{$class}", 60);
             try {
+                if (!$hasPath)
+                    mkdir($path, 0755, true);
+                $injectData = ['mtime' => $mtime, 'properties' => []];
+                foreach ($reflect->getProperties() as $property) {
+                    $annotation = $this->matchAnnotation($property->getDocComment());
+                    if ($annotation === null)
+                        continue;
+                    $propertyName = $property->getName();
+                    $injectData['properties'][] = [
+                        'property' => $propertyName,
+                        'name' => !empty($annotation['value']) ? $annotation['value'] : (!empty($annotation['name']) ? $annotation['name'] : $propertyName),
+                        'prefix' => $annotation['prefix'] ?? '',
+                        'typeof' => $annotation['typeof'] ?? '',
+                    ];
+                }
                 if ($locker->acquire()) {
-                    if (!$hasPath)
-                        mkdir($path, 0755, true);
-                    $injectData = ['mtime' => $mtime, 'properties' => []];
-                    foreach ($reflect->getProperties() as $property) {
-                        $annotation = $this->matchAnnotation($property->getDocComment());
-                        if ($annotation === null)
-                            continue;
-                        $propertyName = $property->getName();
-                        $injectData['properties'][] = [
-                            'property' => $propertyName,
-                            'name' => !empty($annotation['value']) ? $annotation['value'] : (!empty($annotation['name']) ? $annotation['name'] : $propertyName),
-                            'prefix' => $annotation['prefix'] ?? '',
-                            'typeof' => $annotation['typeof'] ?? '',
-                        ];
-                    }
                     file_put_contents($file, "<?php\r\n/**\r\n  * @author crastlin@163.com\r\n  * @date 2022-03-12\r\n  * 使用Injection::bind(name, value) 绑定数据，使用属性注解@Inject 注入到属性\r\n*/\r\nreturn " . var_export($injectData, true) . ";");
                     $locker->release();
                 }
@@ -227,7 +227,7 @@ class Injection
                         case $propertySetMethodType == 'setProperty':
                             $object->setProperty($propertyName, $value);
                             break;
-                            // using __set magic action
+                        // using __set magic action
                         case 'set':
                             $object->{$propertyName} = $value;
                             break;

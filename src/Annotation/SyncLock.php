@@ -40,7 +40,7 @@ class SyncLock extends Annotation
     protected function parseAnnotate(string $annotate): array
     {
         $annotationResult = [];
-        if (preg_match_all('~((' . $this->attributes . ')\s*=(\{.*?\}))~', $annotate, $matches) && count($matches) == 4) {
+        if (preg_match_all('~((' . $this->attributes . ')\s*=\s*(\{.*?\}))~', $annotate, $matches) && count($matches) == 4) {
             $annotate = str_replace($matches[1], '', $annotate);
             foreach ($matches[2] as $k => $name):
                 $value = $matches[3][$k] ?? [];

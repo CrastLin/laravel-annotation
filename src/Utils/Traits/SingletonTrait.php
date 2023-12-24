@@ -4,7 +4,9 @@ declare(strict_types=1);
 namespace Crastlin\LaravelAnnotation\Utils\Traits;
 
 use Crastlin\LaravelAnnotation\Facades\Injection;
+use Crastlin\LaravelAnnotation\Facades\Validation;
 use ErrorException;
+use Swoole\Exception;
 
 trait SingletonTrait
 {
@@ -71,6 +73,18 @@ trait SingletonTrait
                 $this->{$name} = $value;
             }
         }
+    }
+
+
+    /**
+     * invoke methods
+     * @param string $method
+     * @param mixed $parameters
+     */
+    function invokeValidation(string $method, $data): void
+    {
+        if ($errText = Validation::runValidation(static::class, $method, $data))
+            throw new Exception($errText, 602);
     }
 
 }

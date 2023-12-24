@@ -3,10 +3,10 @@
 
 namespace Crastlin\LaravelAnnotation\Utils;
 
-
-use Crastlin\LaravelAnnotation\Utils\Traits\SingletonTrait;
+use Crastlin\LaravelAnnotation\Annotation\Annotations\Inject;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Validator as Validation;
+use Crastlin\LaravelAnnotation\Utils\Traits\SingletonTrait;
 use Throwable;
 
 /**
@@ -24,8 +24,23 @@ class Validate implements \Illuminate\Contracts\Validation\Validator
      */
     protected $allowAccessProperties = ['*'];
 
-    protected $data = [], $rules = [],
-        $messages = [
+    /**
+     * @var array $data
+     * @Inject(name="annotation.data")
+     */
+    protected $data = [];
+    /**
+     * @var array $rules
+     * @Inject(name="annotation.rules")
+     */
+    protected $rules = [];
+    /**
+     * @var array $messages
+     * @Inject(name="annotation.messages")
+     */
+    protected $messages = [];
+    
+    protected $defaultMessages = [
         'required' => ':attribute不能为空',
         'numeric' => ':attribute必须为数字类型',
         'regex' => ':attribute格式不正确',
@@ -66,6 +81,7 @@ class Validate implements \Illuminate\Contracts\Validation\Validator
             $messages = $ruleList[1] ?? [];
             $attributes = $ruleList[2] ?? [];
             $this->rules = !empty($rules) ? array_merge($this->rules, $rules) : $this->rules;
+            $this->messages = $this->defaultMessages;
             $this->messages = !empty($messages) ? array_merge($this->messages, $messages) : $this->messages;
             $this->attributes = !empty($attributes) ? array_merge($this->attributes, $attributes) : $this->attributes;
         }

@@ -58,7 +58,7 @@ class Group extends Annotation
      * @param string $pattern
      * @return array|null
      */
-    function matchMethodAnnotate(ReflectionMethod $method = null, string $pattern = ''): ?array
+    function matchMethodAnnotate(ReflectionMethod $method = null,bool $isMatchAll = false, string $pattern = ''): ?array
     {
         $pattern = $pattern ?: $this->pattern;
         if (in_array(self::ELEMENT_METHOD, $this->target)) {

@@ -2,6 +2,8 @@
 
 namespace Crastlin\LaravelAnnotation\Middleware;
 
+use Crastlin\LaravelAnnotation\Facades\Injection;
+use Crastlin\LaravelAnnotation\Facades\Validation;
 use Illuminate\Cache\RedisLock;
 use Illuminate\Support\Facades\Redis;
 
@@ -12,20 +14,22 @@ class InterceptorMiddleware
     {
         $config = config('annotation');
         $interceptorConfig = $config['interceptor'] ?? [];
-        list($lockConfig, $valudateConfig) = [
+        list($lockConfig, $valudateConfig, $namespace) = [
             $interceptorConfig['lock'] ?? [],
             $interceptorConfig['validate'] ?? [],
+            $config['controller_namespace'] ?? 'App\Http\Controllers',
+
         ];
 
         $redis = null;
-
-        // interceptor of synclock
-        if (!empty($lockConfig['case'])) {
-            $path = $request->path();
-            $key = '';
-            if ($path && preg_match('~^[\w\-/]+$~', $path)) {
-                $filePath = !empty($config['annotation_path']) ? rtrim($config['annotation_path'], '/') : 'data';
-                $routeBasePath = base_path($filePath . '/routes');
+        $path = $request->path();
+        $key = '';
+        if ($path && preg_match('~^[\w\-/]+$~', $path)) {
+            $filePath = !empty($config['annotation_path']) ? rtrim($config['annotation_path'], '/') : 'data';
+            $routeBasePath = base_path($filePath . '/routes');
+            $all = $request->all();
+            // interceptor of synclock
+            if (!empty($lockConfig['case'])) {
                 $file = "{$routeBasePath}/lock_annotation.php";
                 $map = is_file($file) ? require_once $file : [];
                 $annotation = !empty($map) && array_key_exists($path, $map) ? $map[$path] : [];
@@ -36,7 +40,6 @@ class InterceptorMiddleware
                         if (!empty($annotation['suffix']))
                             $annotation['suffixes'][] = $annotation['suffix'];
                         $suffixKey = '';
-                        $all = $request->all();
                         foreach ($annotation['suffixes'] as $suffix):
                             $suffixList = explode('.', $suffix);
                             $count = count($suffixList);
@@ -60,13 +63,18 @@ class InterceptorMiddleware
                             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
                 }
             }
-        }
 
-        // interceptor of validation
-        if (!empty($valudateConfig['case'])) {
-           
+            // interceptor of validation
+            if (!empty($valudateConfig['case'])) {
+                $map = Injection::take('crast.route_map');
+                if (!empty($map['name'])) {
+                    [$class, $action] = explode('@', $map['name']);
+                    if ($errText = Validation::runValidation('\\'.$namespace .'\\'. $class, $action, $all))
+                        return response()->json(['code' => 500, 'msg' => $errText])->header('Pragma', 'no-cache')
+                            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
+                }
+            }
         }
-
         $response = $next($request);
         if (!empty($lockConfig['case']) && $redis && empty($annotation['once']))
             $redis->del($key);
