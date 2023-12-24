@@ -229,7 +229,7 @@ class Validation
                     if (!isset($rules[$validator['field']]))
                         $rules[$validator['field']] = [];
                     array_push($rules[$validator['field']], $rule);
-                    $messages[$rule] = $validator['message'];
+                    $messages[explode(':', $rule)[0]] = $validator['message'];
                 }
                 $attributes[$validator['field']] = !empty($validator['attribute']) ? $validator['attribute'] : $validator['field'];
             }
