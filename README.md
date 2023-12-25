@@ -710,7 +710,32 @@ class IndexController extends BaseController
   }
 }
 ````
-* 说明：class定义的类必须保存在配置文件中的 interceptor -> validate -> namespace 目录下，且必须继承：\Crastlin\LaravelAnnotation\Utils\Validate 类
+* 在app/Validator目录下创建自定义验证器
+````php
+namespace App\Validator;
+use App\Service\BusinessService;
+use Crastlin\LaravelAnnotation\Utils\Validate;
+
+class Mobile extends Validate
+{
+ 
+  protected $rules = [
+        'mobile' => 'required|regex:/^1[3456789][0-9]{9}$/',
+        'code' => 'required|digits_between:3,6',
+    ],
+        $messages = [
+        'required' => ':attribute不能为空',
+        'mobile.regex' => ':attribute输入不正确',
+        'code.digits_between' => ':attribute必须为3到6位',
+    ],
+        $attributes = [
+        'mobile' => '手机号',
+        'code' => '验证码',
+    ];
+    
+}
+````
+* 说明：自定义验证器目录可在config/annotation中配置 interceptor -> validate -> namespace，验证需要继承：\Crastlin\LaravelAnnotation\Utils\Validate 类
 #####
 * 其它验证器注解
 ````php
@@ -724,6 +749,7 @@ class IndexController extends BaseController
    * @PostMapping
    * @Validation\Required(username)
    * @Validation\AlphaNum(username)
+   * @Validation\Regex(field="username", rule="~^\w{6,20}$~") 
    */
   function index()
   { 
@@ -733,7 +759,7 @@ class IndexController extends BaseController
 * 请查看Annotation/Annotations/Validation目录
 > 6.2 自定验证注解
 
-* 在指定类中使用验证器注解，可以在__invoke调用：\Crastlin\LaravelAnnotation\Facades\Validation::runValidation 方法，或者使用在类中引用：Crastlin\LaravelAnnotation\Utils\Traits，然后在__invoke方法中调用 $this->invokeValidation($method,$data) 方法
+* 在指定类中使用验证器注解，可以定义__invoke调用：\Crastlin\LaravelAnnotation\Facades\Validation::runValidation 方法，或者在使用类中引用：Crastlin\LaravelAnnotation\Utils\Traits，然后在__invoke方法中调用 $this->invokeValidation($method,$data) 方法
 #
  #### 代码贡献
  * crastlin@163.com
