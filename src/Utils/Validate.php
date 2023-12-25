@@ -51,8 +51,6 @@ class Validate implements \Illuminate\Contracts\Validation\Validator
         'integer' => ':attribute必须为整数',
         'digits_between' => ':attribute 必须在 :min 和 :max 位之间',
         'between' => ':attribute不在允许范围',
-        'mix' => ':attribute最小值为:value',
-        'max' => ':attribute最大值为:value',
         'gt' => ':attribute必须大于:value',
         'lt' => ':attribute必须小于:value',
         'gte' => ':attribute必须大于等于:value',

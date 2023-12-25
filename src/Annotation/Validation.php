@@ -213,23 +213,35 @@ class Validation
                             return $validate->errors()->first();
                         continue;
                     } else {
-                        if (!isset($rules[$validator['field']]))
-                            $rules[$validator['field']] = [];
-                        if (!empty($validator['rules']))
-                            $rules[$validator['field']] = array_merge($rules[$validator['field']], $validator['rules']);
-                        else {
+                        $rulesList = $rules[$validator['field']] ?? [];
+                        if (!empty($validator['rules'])) {
+                            $rulesList = array_merge($rulesList, $validator['rules']);
+                        } else {
                             $ruleList = !empty($validator['rule']) ? explode('|', $validator['rule']) : [];
-                            $rules[$validator['field']] = !empty($ruleList) ? array_merge($rules[$validator['field']], $ruleList) : $rules[$validator['field']];
+                            $rulesList = !empty($ruleList) ? array_merge($rulesList, $ruleList) : $rulesList;
                         }
-                        $messages = !empty($validator['messages']) ? array_merge($messages, $validator['messages']) : $messages;
+                        $rules[$validator['field']] = $rulesList;
+                        if (!empty($validator['messages'])) {
+                            $messages = array_merge($messages, $validator['messages']);
+                        } else {
+                            if (!empty($validator['message'])) {
+                                $messageList = explode('|', $validator['message']);
+                                foreach ($rulesList as $rk => $rule) {
+                                    $ruleName = explode(':', $rule)[0];
+                                    if (!empty($messageList[$rk]))
+                                        $messages["{$validator['field']}.{$ruleName}"] = $messageList[$rk];
+                                }
+                            }
+                        }
                     }
                 } else {
                     $rule = $this->humpToUnderline($validator['validator']);
                     $rule = $aliasSet[$rule] ?? $rule;
                     if (!isset($rules[$validator['field']]))
                         $rules[$validator['field']] = [];
-                    array_push($rules[$validator['field']], $rule);
-                    $messages[explode(':', $rule)[0]] = $validator['message'];
+                    $rules[$validator['field']][] = $rule;
+                    $ruleName = explode(':', $rule)[0];
+                    $messages["{$validator['field']}.{$ruleName}"] = $validator['message'];
                 }
                 $attributes[$validator['field']] = !empty($validator['attribute']) ? $validator['attribute'] : $validator['field'];
             }

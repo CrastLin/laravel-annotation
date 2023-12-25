@@ -81,7 +81,7 @@ trait SingletonTrait
      * @param string $method
      * @param mixed $parameters
      */
-    function invokeValidation(string $method, $data): void
+    function invokeValidation(string $method, array $data): void
     {
         if ($errText = Validation::runValidation(static::class, $method, $data))
             throw new Exception($errText, 602);

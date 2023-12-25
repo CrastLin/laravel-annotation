@@ -19,6 +19,9 @@ class Injection
      */
     static $inject;
 
+    /**
+     * @var array $attributes inject container
+     */
     protected $attributes = [];
 
     protected $injectObjectList = [];
@@ -104,34 +107,52 @@ class Injection
         $rootPath = $conf && !empty($conf['annotation_path']) ? $conf['annotation_path'] : 'data/';
         $rootPath = base_path("{$rootPath}inject/");
         $class = $reflect->getName();
+        // get current class file modify time
         $classFile = $reflect->getFileName();
         $subList = explode('\\', $class);
-        $mtime = filemtime($classFile);
         $name = array_pop($subList);
         $path = $rootPath . join('/', $subList) . '/';
         $hasPath = is_dir($path);
         $file = $path . $name . '.php';
         $hasFile = $hasPath && is_file($file);
         $injectData = $hasFile ? require_once $file : [];
+
+        $mtime = (string)filemtime($classFile);
+        $basePath = base_path();
+        // get parent class file modify time
+        if (empty($injectData['parents'])) {
+            // repeat get parent class information
+            $repeatGetParentClass = function (\ReflectionClass $reflect) use (&$repeatGetParentClass, &$injectData, $basePath) {
+                $parentClass = $reflect->getParentClass();
+                if ($parentClass) {
+                    $class = $parentClass->getFileName();
+                    if (empty($class))
+                        return;
+                    $injectData['parents'][] = [
+                        'file' => str_replace($basePath, '', $parentClass->getFileName()),
+                        'class' => $parentClass->getName(),
+                    ];
+                    if ($parentReflect = $parentClass->getParentClass())
+                        $repeatGetParentClass($parentReflect);
+                }
+            };
+            $repeatGetParentClass($reflect);
+        }
+        if (!empty($injectData['parents'])) {
+            foreach ($injectData['parents'] as $parent) {
+                $mtime .= (string)filemtime("{$basePath}{$parent['file']}");
+            }
+        }
+
         if (!$hasFile || empty($injectData['mtime']) || $injectData['mtime'] != $mtime) {
             $redis = Redis::connection();
-            $locker = new RedisLock($redis, "sync_inject_config:{$class}", 60);
+            $locker = new RedisLock($redis, "sync_inject_cache:{$class}", 60);
             try {
                 if (!$hasPath)
                     mkdir($path, 0755, true);
-                $injectData = ['mtime' => $mtime, 'properties' => []];
-                foreach ($reflect->getProperties() as $property) {
-                    $annotation = $this->matchAnnotation($property->getDocComment());
-                    if ($annotation === null)
-                        continue;
-                    $propertyName = $property->getName();
-                    $injectData['properties'][] = [
-                        'property' => $propertyName,
-                        'name' => !empty($annotation['value']) ? $annotation['value'] : (!empty($annotation['name']) ? $annotation['name'] : $propertyName),
-                        'prefix' => $annotation['prefix'] ?? '',
-                        'typeof' => $annotation['typeof'] ?? '',
-                    ];
-                }
+                $annotations = $this->parseAnnotationByReflect($reflect);
+                $injectData = array_merge($injectData, $annotations);
+                $injectData['mtime'] = $mtime;
                 if ($locker->acquire()) {
                     file_put_contents($file, "<?php\r\n/**\r\n  * @author crastlin@163.com\r\n  * @date 2022-03-12\r\n  * 使用Injection::bind(name, value) 绑定数据，使用属性注解@Inject 注入到属性\r\n*/\r\nreturn " . var_export($injectData, true) . ";");
                     $locker->release();
@@ -148,6 +169,46 @@ class Injection
     }
 
 
+    // parse annotation by reflect docComment
+    protected function parseAnnotationByReflect(\ReflectionClass $reflectionClass): array
+    {
+        $targetList = [$reflectionClass->getProperties(), $reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC)];
+        $maps = [];
+        foreach ($targetList as $targetReflect) {
+            foreach ($targetReflect as $target) {
+                $key = $target instanceof \ReflectionProperty ? 'properties' : 'methods';
+                if (!isset($maps[$key]))
+                    $maps[$key] = [];
+                $annotation = $this->matchAnnotation($target->getDocComment());
+                if ($annotation === null)
+                    continue;
+                $targetName = $target->getName();
+                $name = !empty($annotation['value']) ? $annotation['value'] : (!empty($annotation['name']) ? $annotation['name'] : $targetName);
+                $map = [];
+                switch ($key) {
+                    case 'properties':
+                        $map = [
+                            'property' => $targetName,
+                            'name' => $name,
+                            'prefix' => $annotation['prefix'] ?? '',
+                            'typeof' => $annotation['typeof'] ?? '',
+                        ];
+                        break;
+                    case 'methods':
+                        $map = [
+                            'method' => $targetName,
+                            'name' => $name,
+                            'prefix' => $annotation['prefix'] ?? '',
+                        ];
+                        break;
+                }
+                $maps[$key][] = $map;
+            }
+        }
+        return $maps;
+    }
+
+    // match annotation from content
     protected function matchAnnotation(string $content): ?array
     {
         if (empty($content))
@@ -198,7 +259,7 @@ class Injection
         return $annotateSet;
     }
 
-
+    // auto inject all properties and methods
     protected function autoInject(string $class, &$object = null): void
     {
         if (!empty($this->injectObjectList) && array_key_exists($class, $this->injectObjectList))
@@ -209,6 +270,7 @@ class Injection
         $propertySetMethodType = method_exists($object, 'setProperty') ? 'setProperty' : (method_exists($object, '__set') ? 'set' : '');
 
         $propertiesCache = $this->getInjectInformation($reflect);
+        // inject all properties
         if (!empty($propertiesCache['properties'])) {
             foreach ($propertiesCache['properties'] as $property) {
                 $propertyName = $property['property'];
@@ -228,7 +290,7 @@ class Injection
                             $object->setProperty($propertyName, $value);
                             break;
                         // using __set magic action
-                        case 'set':
+                        case $propertySetMethodType == 'set':
                             $object->{$propertyName} = $value;
                             break;
                         default:
@@ -237,13 +299,30 @@ class Injection
                 }
             }
         }
+        // inject all methods
+        if (!empty($propertiesCache['methods'])) {
+            foreach ($propertiesCache['methods'] as $method) {
+                $methodName = $method['method'];
+                $injectName = !empty($method['name']) ? $method['name'] : $methodName;
+                $prefix = $method['prefix'] ?? '';
+                $bindName = $prefix ? "{$prefix}.{$injectName}" : $injectName;
+                if ($this->exists($bindName)) {
+                    if (!method_exists($object, $methodName))
+                        throw new \Exception("{$class}::{$methodName} is not defined");
+                    $value = $this->take($bindName);
+                    $object->{$methodName}($value);
+                }
+            }
+        }
     }
 
+    // inject by object
     function injectWithObject($object): void
     {
         $this->autoInject(get_class($object), $object);
     }
 
+    // inject by class namesapce
     function injectWithClass(string $class)
     {
         if (!class_exists($class))

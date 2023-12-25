@@ -407,7 +407,7 @@ php artisan annotation:node {module?}
 ````
 * 以上的效果是同一的id请求会限制并发
 
-5. ##### 数据依赖注入注解 (2023-12 新增，需要使用: composer require crastlin/laravel-annotation:v2.0.4beta)
+5. ##### 数据依赖注入注解 (2023-12-10 新增，需要使用: composer require crastlin/laravel-annotation:v2.0.4beta)
 * 在项目开发中，经常需要往service或logic层传递数据，通常做法是使用setter，但多个对象setter时，会让代码过于冗余，且有可能会缺少某个setter而导致程序无法正常运行。
 > 5.1 使用前需要对数据进行绑定，以下例子，在中间件绑定请求参数：
 
@@ -465,7 +465,10 @@ abstract class BaseController extends Controller
     }
 }
 
-// 实现控制器类中使用注解自动注入
+````
+
+* 实现控制器类中使用注解自动注入
+````php
 class IndexController extends BaseController
 {
 
@@ -535,7 +538,10 @@ class IndexController extends BaseController
     }
  }
 
-// 注入注解增加对应的配置
+````
+
+* 在对应属性增加注入注解
+````php
 class IndexController extends BaseController
 {
 
@@ -580,9 +586,9 @@ class BusinessService
   }
   
 }
-
-// 实例化BusinessService对象
-// 注入注解增加对应的配置
+````
+* 通过singleton方法实例化BusinessService对象，完成依赖注入
+````php
 namespace App\Http\Controllers\Api;
 use App\Service\BusinessService;
 
@@ -598,13 +604,11 @@ class IndexController extends BaseController
      $service->profile();
   }
 }
-
 ````
 
 >5.5 依赖注入的优先级是：setter方法 -> setProperty方法 -> 直接赋值
 
 ````php
-
 namespace App\Service;
 use Crastlin\LaravelAnnotation\Utils\Traits\SingletonTrait;
 
@@ -613,6 +617,7 @@ class BusinessService
   use SingletonTrait;
   /**
    * @var array $data
+   * @Inject(name="common.parameters")
    */
   protected $data;
   
@@ -630,14 +635,104 @@ class BusinessService
   }
   
 }
-
-
 ````
 
 * 注意：使用赋值的方式注入时，须要属性为pubic 或者 增加魔术方法 __set()
 
+5. ##### 验证器注解 (2023-12-24 新增，需要使用: composer require crastlin/laravel-annotation:v2.1beta)
+* 可以通过注解的方式，为方法增加数据验证注解，需要更新到最新到2.1及以上版本。
+> 5.1 在控制器中使用
+* 在app/Http/Kernel.php中引入拦截器中间件
+````php
 
+class Kernel extends \Symfony\Component\HttpKernel\HttpKernel
+{
+  
+  protected $middleware = [
+     // .... 
+     // 引入拦截器中间件
+     \Crastlin\LaravelAnnotation\Middleware\InterceptorMiddleware::class,
+  ];
+}
+````
+* 说明：如果已经引用了同步锁中间件 \Crastlin\LaravelAnnotation\Middleware\SyncLockMiddleware::class, 需要将该中间件移除，因为拦截器中间件包含同步锁功能。
+###
+* 在控制器对应的方法添加注解
 
+````php
+namespace App\Http\Controllers\Api;
+use App\Service\BusinessService;use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
+
+class IndexController extends BaseController
+{
+ 
+  /**
+   * @PostMapping
+   * @Validation(field="username", rule="required", message="用户名不能为空") 
+   */
+  function index()
+  { 
+  }
+}
+@Validation(field="mobile", rule="required|regex:~^1\d{10}$~", attribute="手机号", message=":attribute不能为空|:attribute格式不正确")
+````
+* 定义多个验证规则
+````php
+namespace App\Http\Controllers\Api;
+use App\Service\BusinessService;use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
+
+class IndexController extends BaseController
+{
+ 
+  /**
+   * @PostMapping
+   * @Validation(field="mobile", rule="required|regex:~^1\d{10}$~", attribute="手机号", message=":attribute不能为空|:attribute格式不正确")
+   */
+  function index()
+  { 
+  }
+}
+````
+* 使用自定义验证类注解
+````php
+namespace App\Http\Controllers\Api;
+use App\Service\BusinessService;use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
+
+class IndexController extends BaseController
+{
+ 
+  /**
+   * @PostMapping
+   * @Validation(class="Mobile")
+   */
+  function index()
+  { 
+  }
+}
+````
+* 说明：class定义的类必须保存在配置文件中的 interceptor -> validate -> namespace 目录下，且必须继承：\Crastlin\LaravelAnnotation\Utils\Validate 类
+#####
+* 其它验证器注解
+````php
+namespace App\Http\Controllers\Api;
+use App\Service\BusinessService;use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
+
+class IndexController extends BaseController
+{
+ 
+  /**
+   * @PostMapping
+   * @Validation\Required(username)
+   * @Validation\AlphaNum(username)
+   */
+  function index()
+  { 
+  }
+}
+````
+* 其它注解请查看Annotation/Annotations/Validation目录
+* 在指定类中使用验证器注解，可以在__invoke调用：\Crastlin\LaravelAnnotation\Facades\Validation::runValidation 方法，或者使用在类中引用：Crastlin\LaravelAnnotation\Utils\Traits，然后在__invoke方法中调用 $this->invokeValidation($method,$data) 方法
+#
  #### 代码贡献
  * crastlin@163.com
  
