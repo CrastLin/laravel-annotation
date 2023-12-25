@@ -1,8 +1,9 @@
 # laravel-annotation
 
 #### 介绍
-laravel-annotation 是基于PHP反射机制，将注解标记解析成功功能，Route（路由）、Group（路由分组，包含路由中间件定义）、Node（管理后台菜单树和权限结点注解）、Injection（依赖注入）、Validation（验证器）等注解。
-使用注解可以提高开发效率，减少重复的无用工作。
+laravel-annotation （版本小于php8）是基于多行注释+PHP反射机制实现注解功能，已发布的注解有：
+* Route（路由）、Group（路由分组，包含路由中间件定义）、Node（管理后台菜单树和权限结点）、Inject（依赖注入）、Validation（验证器）。
+* 使用注解可以提高开发效率，减少重复的无用工作。
 
 #### 软件要求
 支持laravel版本 >= 5.8，php版本 >= 7.1
