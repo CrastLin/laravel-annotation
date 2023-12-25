@@ -639,9 +639,9 @@ class BusinessService
 
 * 注意：使用赋值的方式注入时，须要属性为pubic 或者 增加魔术方法 __set()
 
-5. ##### 验证器注解 (2023-12-24 新增，需要使用: composer require crastlin/laravel-annotation:v2.1beta)
+6. ##### 验证器注解 (2023-12-24 新增，需要使用: composer require crastlin/laravel-annotation:v2.1beta)
 * 可以通过注解的方式，为方法增加数据验证注解，需要更新到最新到2.1及以上版本。
-> 5.1 在控制器中使用
+> 6.1 在控制器中使用
 * 在app/Http/Kernel.php中引入拦截器中间件
 ````php
 
@@ -730,7 +730,9 @@ class IndexController extends BaseController
   }
 }
 ````
-* 其它注解请查看Annotation/Annotations/Validation目录
+* 请查看Annotation/Annotations/Validation目录
+> 6.2 自定验证注解
+
 * 在指定类中使用验证器注解，可以在__invoke调用：\Crastlin\LaravelAnnotation\Facades\Validation::runValidation 方法，或者使用在类中引用：Crastlin\LaravelAnnotation\Utils\Traits，然后在__invoke方法中调用 $this->invokeValidation($method,$data) 方法
 #
  #### 代码贡献
