@@ -11,7 +11,7 @@ laravel-annotation （版本小于php8）是基于多行注释+PHP反射机制�
 
 #### 安装教程
 
-1. composer require crastlin/laravel-annotation:v2.1beta 安装
+1. composer require crastlin/laravel-annotation:v2.1beta
 2. 或在composer.json中的require添加 "crastlin/laravel-annotation":"^v2.1beta"
 
 #### 使用说明
@@ -408,13 +408,15 @@ php artisan annotation:node {module?}
 ````
 * 以上的效果是同一的id请求会限制并发
 
-5. ##### 数据依赖注入注解 (2023-12-10 新增，需要使用: composer require crastlin/laravel-annotation:v2.0.4beta)
+5. ##### 数据依赖注入注解 (2023-12-10 新增，需要更新依赖: composer require crastlin/laravel-annotation:v2.0.4beta)
 * 在项目开发中，经常需要往service或logic层传递数据，通常做法是使用setter，但多个对象setter时，会让代码过于冗余，且有可能会缺少某个setter而导致程序无法正常运行。
 > 5.1 使用前需要对数据进行绑定，以下例子，在中间件绑定请求参数：
 
 ````php
  namespace App\Http\Middleware;
- use Crastlin\LaravelAnnotation\Facades\Injection;use \Illuminate\Http\Request;
+ use Crastlin\LaravelAnnotation\Facades\Injection;
+ use \Illuminate\Http\Request;
+ use App\Model\User;
  class AuthorizeCheck
  {
     function handle(Request $request)
@@ -640,7 +642,7 @@ class BusinessService
 
 * 注意：使用赋值的方式注入时，须要属性为pubic 或者 增加魔术方法 __set()
 
-6. ##### 验证器注解 (2023-12-24 新增，需要使用: composer require crastlin/laravel-annotation:v2.1beta)
+6. ##### 验证器注解 (2023-12-24 新增，需要更新依赖: composer require crastlin/laravel-annotation:v2.1beta)
 * 可以通过注解的方式，为方法增加数据验证注解，需要更新到最新到2.1及以上版本。
 > 6.1 在控制器中使用
 * 在app/Http/Kernel.php中引入拦截器中间件
@@ -656,26 +658,28 @@ class Kernel extends \Symfony\Component\HttpKernel\HttpKernel
   ];
 }
 ````
-* 说明：如果已经引用了同步锁中间件 \Crastlin\LaravelAnnotation\Middleware\SyncLockMiddleware::class, 需要将该中间件移除，因为拦截器中间件包含同步锁功能。
+* 说明：如果已经引用了同步锁中间件 \Crastlin\LaravelAnnotation\Middleware\SyncLockMiddleware::class, 因为拦截器中间件包含同步锁功能, 所以需要将该中间件移除。
 ###
 * 在控制器对应的方法添加注解
 
 ````php
 namespace App\Http\Controllers\Api;
-use App\Service\BusinessService;use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
+use App\Service\BusinessService;
+use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
 
 class IndexController extends BaseController
 {
  
   /**
    * @PostMapping
-   * @Validation(field="username", rule="required", message="用户名不能为空") 
+   * @Validation(field="username", rule="required", message="用户名不能为空")
+   * @Validation(field="mobile", rule="required|regex:~^1\d{10}$~", attribute="手机号", message=":attribute不能为空|:attribute格式不正确")
    */
   function index()
   { 
   }
 }
-@Validation(field="mobile", rule="required|regex:~^1\d{10}$~", attribute="手机号", message=":attribute不能为空|:attribute格式不正确")
+
 ````
 * 定义多个验证规则
 ````php
@@ -741,7 +745,8 @@ class Mobile extends Validate
 * 其它验证器注解
 ````php
 namespace App\Http\Controllers\Api;
-use App\Service\BusinessService;use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
+use App\Service\BusinessService;
+use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
 
 class IndexController extends BaseController
 {
@@ -767,5 +772,3 @@ class IndexController extends BaseController
  
  #### 使用必读
  * 使用此插件请遵守法律法规，请勿在非法和违法应用中使用，产生的一切后果和法律责任均与作者无关！
-
-
