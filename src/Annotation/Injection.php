@@ -125,6 +125,7 @@ class Injection
             $repeatGetParentClass = function (\ReflectionClass $reflect) use (&$repeatGetParentClass, &$injectData, $basePath) {
                 $parentClass = $reflect->getParentClass();
                 if ($parentClass) {
+                    $injectData = ['parents' => []];
                     $class = $parentClass->getFileName();
                     if (empty($class))
                         return;
