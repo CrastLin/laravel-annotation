@@ -88,6 +88,38 @@ laravel-annotation （版本小于php8）是基于多行注释+PHP反射机制�
 > 注解例子
 ````php
  /**
+  * @Group(prefix="home", namespace="Home", middleware="user.check", as="User::", domain="xxx.com")
+  */
+ class IndexController
+ {
+   /** 
+    * @Route(url=login, method=post|get)
+    */
+   function index()
+   {
+     // todo
+   }
+   
+   /** 
+    * @RequestMapping("reg")
+    */
+   function register()
+   {
+     // todo
+   }
+   
+   /** 
+    * @GetMapping
+    */
+   function userCenter()
+   {
+     // todo
+   }
+ }
+````
+或者使用json格式
+````php
+ /**
   * @Group({"prefix":"home", "namespace":"Home", "middleware": "user.check", "as": "User::"})
   */
  class IndexController
@@ -186,14 +218,14 @@ php artisan annotation:route {module?}
 > 类注解模块
 ````php
  /**
-  * @node (name=“应用名称”, parent=“父节点”, menu=0/1, auth=0/1/2, order=0, params=“xx=yy&cc=ss“, icon=”xxx“, remark=”xxx“, actions=”defaultPage,xxx,yyyy“)
+  * @node (name="应用名称", parent="父节点", menu=0/1, auth=0/1/2, order=0, params="xx=yy&cc=ss", icon="xxx", remark="xxx", actions="defaultPage,xxx,yyyy")
   */
 ```` 
 
 > 方法注解模块
  ````php
   /**
-   * @node (name=”节点名称“, parent=”父节点“, menu=0/1, auth=0/1/2, order=0, params=”xx=yy&cc=ss“, icon=”xxx“, code=”query“, remark=”xxx“, ignore, delete)
+   * @node (name="节点名称", parent="父节点", menu=0/1, auth=0/1/2, order=0, params="xx=yy&cc=ss", icon="xxx", code="query", remark="xxx", ignore, delete)
    */
  ```` 
 > 参数说明
@@ -355,7 +387,7 @@ php artisan annotation:node {module?}
 * 请查看我的主页laravel-annotation-demo仓库获取，内附使用demo和需要使用的sql
 
 
-4. ##### 分布式原子锁注解 (2022-8 新增，需要使用: composer require crastlin/laravel-annotation:v2.0.3beta)
+4. ##### 分布式原子锁注解 (2022-8 新增，需要更新版本: composer require crastlin/laravel-annotation:^v2.*)
 * 经常遇到有些情况需要防止并发操作的应用场景，可以使用该注解创建原子操作锁，防止并发访问。
 > 使用需要在app/Http/Kernel.php中增加中间件配置
 ````php
@@ -408,7 +440,7 @@ php artisan annotation:node {module?}
 ````
 * 以上的效果是同一的id请求会限制并发
 
-5. ##### 数据依赖注入注解 (2023-12-10 新增，需要更新依赖: composer require crastlin/laravel-annotation:v2.0.4beta)
+5. ##### 数据依赖注入注解 (2023-12-10 新增，需要更新依赖: composer require crastlin/laravel-annotation:^v2.0.4beta)
 * 在项目开发中，经常需要往service或logic层传递数据，通常做法是使用setter，但多个对象setter时，会让代码过于冗余，且有可能会缺少某个setter而导致程序无法正常运行。
 > 5.1 使用前需要对数据进行绑定，以下例子，在中间件绑定请求参数：
 
@@ -445,8 +477,8 @@ php artisan annotation:node {module?}
 
 namespace Illuminate\Routing\Controller;
 use Crastlin\LaravelAnnotation\Facades\Injection;
-use Crastlin\LaravelAnnotation\Annotation\Annotations\Inject
-use Crastlin\LaravelAnnotation\Annotation\Annotations\PostMapping
+use Crastlin\LaravelAnnotation\Annotation\Annotations\Inject;
+use Crastlin\LaravelAnnotation\Annotation\Annotations\PostMapping;
 
 abstract class BaseController extends Controller
 {
@@ -528,7 +560,8 @@ class IndexController extends BaseController
 
 // 在中间件中绑定带前缀的数据或对象
  namespace App\Http\Middleware;
- use Crastlin\LaravelAnnotation\Facades\Injection;use \Illuminate\Http\Request;
+ use Crastlin\LaravelAnnotation\Facades\Injection;
+ use \Illuminate\Http\Request;
  class AuthorizeCheck
  {
     function handle(Request $request)
@@ -642,6 +675,38 @@ class BusinessService
 
 * 注意：使用赋值的方式注入时，须要属性为pubic 或者 增加魔术方法 __set()
 
+> 5.6 方法依赖注入（v2.1beta新增）
+````php
+namespace App\Service;
+use Crastlin\LaravelAnnotation\Utils\Traits\SingletonTrait;
+use App\Model\User;
+
+class BusinessService
+{
+  use SingletonTrait;
+  /**
+   * @var User $user
+   */
+  protected $user;
+  
+  
+  /**
+   * @Inject(name="service.user")
+   */
+  function takeUser(?User $user)
+  { 
+    $this->user = $user;
+  }
+  
+  function getUser()
+  {
+     var_dump($this->user);
+  }
+  
+}
+````
+
+
 6. ##### 验证器注解 (2023-12-24 新增，需要更新依赖: composer require crastlin/laravel-annotation:v2.1beta)
 * 可以通过注解的方式，为方法增加数据验证注解，需要更新到最新到2.1及以上版本。
 > 6.1 在控制器中使用
@@ -684,7 +749,8 @@ class IndexController extends BaseController
 * 定义多个验证规则
 ````php
 namespace App\Http\Controllers\Api;
-use App\Service\BusinessService;use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
+use App\Service\BusinessService;
+use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
 
 class IndexController extends BaseController
 {
@@ -701,7 +767,8 @@ class IndexController extends BaseController
 * 使用自定义验证类注解
 ````php
 namespace App\Http\Controllers\Api;
-use App\Service\BusinessService;use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
+use App\Service\BusinessService;
+use Crastlin\LaravelAnnotation\Annotation\Annotations\Validation;
 
 class IndexController extends BaseController
 {
