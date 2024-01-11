@@ -1,5 +1,5 @@
 # laravel-annotation
-![icon](https://github.com/CrastLin/laravel-annotation/assets/92977363/d238340e-604a-4ef8-a5b6-665c392d868c)
+[![Security Status](https://github.com/CrastLin/laravel-annotation/assets/92977363/d238340e-604a-4ef8-a5b6-665c392d868c)](https://www.murphysec.com/console/report/1739189256993832960/1739189263381757952)
 #### 介绍
 laravel-annotation （版本小于php8）是基于多行注释+PHP反射机制实现注解功能，已发布的注解有：
 * Route（路由）、Group（路由分组，包含路由中间件定义）、Node（管理后台菜单树和权限结点）、Inject（依赖注入）、Validation（验证器）。
