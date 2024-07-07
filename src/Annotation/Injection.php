@@ -115,7 +115,7 @@ class Injection
         $hasPath = is_dir($path);
         $file = $path . $name . '.php';
         $hasFile = $hasPath && is_file($file);
-        $injectData = $hasFile ? require_once $file : [];
+        $injectData = $hasFile ? require $file : [];
 
         $mtime = (string)filemtime($classFile);
         $basePath = base_path();
