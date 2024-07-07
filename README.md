@@ -10,8 +10,8 @@ laravel-annotation （版本小于php8）是基于多行注释+PHP反射机制�
 
 #### 安装教程
 
-1. composer require crastlin/laravel-annotation:v2.1beta
-2. 或在composer.json中的require添加 "crastlin/laravel-annotation":"^v2.1beta"
+1. composer require crastlin/laravel-annotation:v2.2beta
+2. 或在composer.json中的require添加 "crastlin/laravel-annotation":"^v2.2beta"
 
 #### 使用说明
 
@@ -674,7 +674,7 @@ class BusinessService
 
 * 注意：使用赋值的方式注入时，须要属性为pubic 或者 增加魔术方法 __set()
 
-> 5.6 方法依赖注入（v2.1beta新增）
+> 5.6 方法依赖注入（需要更新版本至：v2.2）
 ````php
 namespace App\Service;
 use Crastlin\LaravelAnnotation\Utils\Traits\SingletonTrait;
@@ -706,8 +706,8 @@ class BusinessService
 ````
 
 
-6. ##### 验证器注解 (2023-12-24 新增，需要更新依赖: composer require crastlin/laravel-annotation:v2.1beta)
-* 可以通过注解的方式，为方法增加数据验证注解，需要更新到最新到2.1及以上版本。
+6. ##### 验证器注解 (2023-12-24 新增，需要更新依赖: composer require crastlin/laravel-annotation:v2.2beta)
+* 可以通过注解的方式，为方法增加数据验证注解，需要更新到最新到2.2及以上版本。
 > 6.1 在控制器中使用
 * 在app/Http/Kernel.php中引入拦截器中间件
 ````php
@@ -832,6 +832,9 @@ class IndexController extends BaseController
 > 6.2 自定验证注解
 
 * 在指定类中使用验证器注解，可以定义__invoke调用：\Crastlin\LaravelAnnotation\Facades\Validation::runValidation 方法，或者在使用类中引用：Crastlin\LaravelAnnotation\Utils\Traits，然后在__invoke方法中调用 $this->invokeValidation($method,$data) 方法
+
+ #### 更新日志
+* 2024-7-7 修复依赖注入重复引用注解缓存导致异常问题，版本更新至 v2.2beta
 #
  #### 代码贡献
  * crastlin@163.com
