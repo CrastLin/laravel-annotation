@@ -10,8 +10,8 @@ laravel-annotation （版本小于php8）是基于多行注释+PHP反射机制�
 
 #### 安装教程
 
-1. composer require crastlin/laravel-annotation:v2.2beta
-2. 或在composer.json中的require添加 "crastlin/laravel-annotation":"^v2.2beta"
+1. composer require crastlin/laravel-annotation:v2.3.0
+2. 或在composer.json中的require添加 "crastlin/laravel-annotation":"^v2.3.0"
 
 #### 使用说明
 
