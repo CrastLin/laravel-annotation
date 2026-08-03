@@ -1,6 +1,7 @@
 {
   "name": "crastlin/laravel-annotation",
   "description": "RouteMapping RouteGroup Node",
+  "version": "v2.3.0",
   "keywords": [
     "annotation",
     "laravel",
